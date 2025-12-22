@@ -8,28 +8,29 @@ rm -rf build
 
 echo "compiling..."
 mkdir build
-javac -d build src/ChessClient.java src/ChessServer.java
+javac -cp "lib/*" -d build src/*.java
 
 sleep 2
 
 echo "open Server..."
-java -cp build src.ChessServer &
+java -cp "build:lib/*" src.ChessServer &
 SERVER_PID=$!
 
 sleep 2
 
 echo "start client 1..."
-java -cp build src.ChessClient &
+java -cp "build:lib/*" src.ChessClient &
 CLIENT1_PID=$!
 
 sleep 1
 
 echo "start client 2..."
-java -cp build src.ChessClient &
+java -cp "build:lib/*" src.ChessClient &
 CLIENT2_PID=$!
 
+
 echo "start client 3..."
-java -cp build src.ChessClient &
+java -cp "build:lib/*" src.ChessClient &
 CLIENT3_PID=$!
 
 echo ""

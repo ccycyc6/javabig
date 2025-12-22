@@ -41,6 +41,13 @@ public class ChessClient extends JFrame {
     // 游戏计时
     private String currentTime = "00:00";
     
+    // 数据库相关
+    private ChessDatabase database;
+    private int playerId = -1;
+    private String playerName = "";
+    private JMenuBar menuBar;
+    private JLabel playerInfoLabel;
+    
     public ChessClient() {
         setTitle("中国象棋网络版");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -58,11 +65,32 @@ public class ChessClient extends JFrame {
             e.printStackTrace();
         }
         
+        // 初始化数据库
+        database = new ChessDatabase();
+        
+        // 显示登录对话框
+        LoginDialog loginDialog = new LoginDialog(this, database);
+        playerName = loginDialog.getLoginResult();
+        
+        if (playerName == null || playerName.isEmpty()) {
+            // 用户取消登录
+            System.exit(0);
+            return;
+        }
+        
+        // 获取玩家ID
+        PlayerInfo player = database.getPlayerByName(playerName);
+        if (player != null) {
+            playerId = player.getPlayerId();
+            System.out.println("玩家 " + playerName + " 已登录，ID: " + playerId);
+        }
+        
         initBoard();
         soundManager = new SoundManager();
         createTitlePanel();
         createMainPanel();
         createStatusPanel();
+        createMenuBar();
         
         setVisible(true);
         
@@ -106,10 +134,10 @@ public class ChessClient extends JFrame {
         ));
         boardPanel.setMinimumSize(new Dimension(400, 400)); // 设置最小尺寸
         
-        // 棋盘面板布局设置
+        // 棋盘面板布局设置 - 占用主要空间
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 0.75; // 棋盘占75%宽度
+        gbc.weightx = 1.0; // 棋盘占用剩余空间
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -118,12 +146,13 @@ public class ChessClient extends JFrame {
         // 创建右侧面板
         JPanel rightPanel = createRightPanel();
         
-        // 右侧面板布局设置
+        // 右侧面板布局设置 - 固定宽度
         gbc.gridx = 1;
-        gbc.weightx = 0.0; // 不让右侧面板扩展
+        gbc.weightx = 0.0; // 右侧面板不扩展，保持固定宽度
         gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.VERTICAL; // 只垂直填充
+        gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTH;
+        gbc.insets = new Insets(0, 10, 0, 0);
         mainPanel.add(rightPanel, gbc);
         
         add(mainPanel, BorderLayout.CENTER);
@@ -165,8 +194,8 @@ public class ChessClient extends JFrame {
     private JPanel createRightPanel() {
         JPanel rightPanel = new JPanel(new BorderLayout(10, 10));
         rightPanel.setBackground(new Color(245, 222, 179));
-        rightPanel.setMaximumSize(new Dimension(700, Integer.MAX_VALUE)); // 限制最大宽度
-        rightPanel.setPreferredSize(new Dimension(600, 0)); // 设置首选尺寸
+        rightPanel.setPreferredSize(new Dimension(650, 0)); // 设置首选宽度为650px
+        rightPanel.setMinimumSize(new Dimension(300, 0)); // 最小宽度 300px
         
         // 游戏信息面板
         JPanel infoPanel = createGameInfoPanel();
@@ -188,21 +217,22 @@ public class ChessClient extends JFrame {
             "游戏信息",
             0,
             0,
-            new Font("宋体", Font.BOLD, 18),
+            new Font("宋体", Font.BOLD, 14),
             new Color(139, 69, 19)
         ));
-        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120)); // 限制最大高度
+        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90)); // 减少高度
+        infoPanel.setPreferredSize(new Dimension(0, 90)); // 设置首选高度
         
         JLabel playerLabel = new JLabel("等待分配...", JLabel.CENTER);
-        playerLabel.setFont(new Font("宋体", Font.PLAIN, 18));
+        playerLabel.setFont(new Font("宋体", Font.PLAIN, 14));
         playerLabel.setName("playerLabel");
         
         JLabel turnLabel = new JLabel("当前回合: 红", JLabel.CENTER);
-        turnLabel.setFont(new Font("宋体", Font.PLAIN, 18));
+        turnLabel.setFont(new Font("宋体", Font.PLAIN, 14));
         turnLabel.setName("turnLabel");
         
         JLabel timeLabel = new JLabel("游戏时间: 00:00", JLabel.CENTER);
-        timeLabel.setFont(new Font("宋体", Font.PLAIN, 18));
+        timeLabel.setFont(new Font("宋体", Font.PLAIN, 14));
         
         infoPanel.add(playerLabel);
         infoPanel.add(turnLabel);
@@ -219,7 +249,7 @@ public class ChessClient extends JFrame {
             "聊天窗口",
             0,
             0,
-            new Font("宋体", Font.BOLD, 18),
+            new Font("宋体", Font.BOLD, 14),
             new Color(139, 69, 19)
         ));
         
@@ -227,26 +257,41 @@ public class ChessClient extends JFrame {
         chatArea.setEditable(false);
         chatArea.setLineWrap(true);
         chatArea.setWrapStyleWord(true);
-        chatArea.setFont(new Font("微软雅黑", Font.PLAIN, 18));
+        chatArea.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         chatArea.setBackground(new Color(255, 248, 220));
         chatArea.setForeground(new Color(0, 0, 0));
+        chatArea.setMargin(new Insets(4, 4, 4, 4));
         
         JScrollPane scrollPane = new JScrollPane(chatArea);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getViewport().setBackground(new Color(255, 248, 220));
         
         JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
+        inputPanel.setBackground(new Color(245, 222, 179));
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
+        
         chatInput = new JTextField();
-        chatInput.setFont(new Font("微软雅黑", Font.PLAIN, 18));
-        chatInput.setPreferredSize(new Dimension(0, 60)); // 设置最小高度
+        chatInput.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        chatInput.setPreferredSize(new Dimension(0, 35));
+        chatInput.setOpaque(true);
+        chatInput.setBackground(Color.WHITE);
+        chatInput.setForeground(Color.WHITE);
+        chatInput.setCaretColor(Color.BLACK);
+
+        chatInput.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(139, 69, 19), 1),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
         chatInput.addActionListener(e -> sendChatMessage());
         
         JButton sendButton = new JButton("发送");
-        sendButton.setFont(new Font("微软雅黑", Font.BOLD, 16));
+        sendButton.setFont(new Font("微软雅黑", Font.BOLD, 12));
         sendButton.setBackground(new Color(139, 69, 19));
         sendButton.setForeground(Color.WHITE);
         sendButton.setFocusPainted(false);
-        sendButton.setPreferredSize(new Dimension(120, 60));
+        sendButton.setPreferredSize(new Dimension(70, 35));
+        sendButton.setBorder(BorderFactory.createRaisedBevelBorder());
         sendButton.addActionListener(e -> sendChatMessage());
         
         inputPanel.add(chatInput, BorderLayout.CENTER);
@@ -268,8 +313,55 @@ public class ChessClient extends JFrame {
         statusLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
         statusLabel.setForeground(Color.WHITE);
         
+        playerInfoLabel = new JLabel("玩家: " + playerName);
+        playerInfoLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        playerInfoLabel.setForeground(Color.WHITE);
+        
         statusPanel.add(statusLabel, BorderLayout.WEST);
+        statusPanel.add(playerInfoLabel, BorderLayout.EAST);
         add(statusPanel, BorderLayout.SOUTH);
+    }
+    
+    private void createMenuBar() {
+        menuBar = new JMenuBar();
+        menuBar.setBackground(new Color(139, 69, 19));
+        menuBar.setForeground(Color.WHITE);
+        
+        JMenu gameMenu = new JMenu("游戏");
+        gameMenu.setForeground(Color.WHITE);
+        
+        JMenuItem leaderboardItem = new JMenuItem("查看排行榜");
+        leaderboardItem.addActionListener(e -> showLeaderboard());
+        gameMenu.add(leaderboardItem);
+        
+        gameMenu.addSeparator();
+        
+        JMenuItem exitItem = new JMenuItem("退出");
+        exitItem.addActionListener(e -> {
+            if (database != null) {
+                database.closeConnection();
+            }
+            System.exit(0);
+        });
+        gameMenu.add(exitItem);
+        
+        menuBar.add(gameMenu);
+        setJMenuBar(menuBar);
+    }
+    
+    private void showLeaderboard() {
+        JFrame leaderboardFrame = new JFrame("排行榜 - " + playerName);
+        leaderboardFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        leaderboardFrame.setSize(800, 600);
+        leaderboardFrame.setLocationRelativeTo(this);
+        
+        LeaderboardPanel panel = new LeaderboardPanel(database);
+        if (playerId > 0) {
+            panel.setCurrentPlayer(playerId, playerName);
+        }
+        
+        leaderboardFrame.add(panel);
+        leaderboardFrame.setVisible(true);
     }
     
     private class ChessBoardPanel extends JPanel {
@@ -693,6 +785,9 @@ public class ChessClient extends JFrame {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
+            // 发送登录信息到服务器
+            out.println("LOGIN:" + playerName);
+            
             new Thread(() -> {
                 try {
                     String message;
@@ -711,6 +806,9 @@ public class ChessClient extends JFrame {
             
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "无法连接到服务器!");
+            if (database != null) {
+                database.closeConnection();
+            }
             System.exit(0);
         }
     }

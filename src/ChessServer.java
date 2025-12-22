@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.time.LocalDateTime;
 
 public class ChessServer {
     private static final int PORT = 8888;
@@ -14,10 +15,19 @@ public class ChessServer {
     private static long gameStartTime = System.currentTimeMillis();
     private static boolean gameEnded = false;
     private static ScheduledExecutorService timerExecutor;
+    private static ChessDatabase database;
+    
+    // 记录当前游戏的玩家信息
+    private static String redPlayerName = null;
+    private static String blackPlayerName = null;
+    private static int redPlayerId = -1;
+    private static int blackPlayerId = -1;
     
     public static void main(String[] args) {
+        database = new ChessDatabase();
         initBoard();
         System.out.println("象棋服务器启动，端口: " + PORT);
+        System.out.println("数据库已初始化");
         
         // 启动定时器，每秒向所有客户端发送时间更新
         timerExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -44,6 +54,13 @@ public class ChessServer {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            if (database != null) {
+                database.closeConnection();
+            }
+            if (timerExecutor != null) {
+                timerExecutor.shutdown();
+            }
         }
     }
     
@@ -109,8 +126,27 @@ public class ChessServer {
         public void run() {
             try {
                 String message;
+                boolean loggedIn = false;
                 while ((message = in.readLine()) != null) {
-                    if (message.startsWith("MOVE:")) {
+                    if (message.startsWith("LOGIN:")) {
+                        // 处理登录消息: LOGIN:username
+                        String username = message.substring(6);
+                        PlayerInfo player = database.getPlayerByName(username);
+                        if (player != null) {
+                            loggedIn = true;
+                            if (playerColor.equals("红")) {
+                                redPlayerName = username;
+                                redPlayerId = player.getPlayerId();
+                            } else if (playerColor.equals("黑")) {
+                                blackPlayerName = username;
+                                blackPlayerId = player.getPlayerId();
+                            }
+                            out.println("LOGIN_OK");
+                            System.out.println(username + " 已登录");
+                        } else {
+                            out.println("LOGIN_FAILED");
+                        }
+                    } else if (message.startsWith("MOVE:")) {
                         handleMove(message.substring(5));
                     } else if (message.startsWith("CHAT:")) {
                         String chatMsg = message.substring(5);
@@ -173,6 +209,32 @@ public class ChessServer {
                     broadcastMessage("游戏结束", playerColor + "方吃掉了对方的" + 
                                    (capturedPiece.equals("帅") ? "帅" : "将") + 
                                    "，用时" + gameTime + "秒");
+                    
+                    // 保存对局记录到数据库
+                    if (redPlayerId > 0 && blackPlayerId > 0) {
+                        try {
+                            GameRecord record = new GameRecord(redPlayerId, redPlayerName, 
+                                                              blackPlayerId, blackPlayerName);
+                            int winnerId = playerColor.equals("红") ? redPlayerId : blackPlayerId;
+                            String winnerName = playerColor.equals("红") ? redPlayerName : blackPlayerName;
+                            record.setWinnerId(winnerId);
+                            record.setWinnerName(winnerName);
+                            record.setGameDurationSeconds((int) gameTime);
+                            record.setStartTime(LocalDateTime.now().minusSeconds(gameTime));
+                            record.setEndTime(LocalDateTime.now());
+                            
+                            database.saveGameRecord(record);
+                            database.updatePlayerStats(winnerId, true);
+                            
+                            // 更新失败者的统计
+                            int loserId = playerColor.equals("红") ? blackPlayerId : redPlayerId;
+                            database.updatePlayerStats(loserId, false);
+                            
+                            System.out.println("对局已保存到数据库");
+                        } catch (Exception e) {
+                            System.out.println("保存对局记录失败: " + e.getMessage());
+                        }
+                    }
                     
                     // 3秒后重新开始游戏
                     new Thread(() -> {
