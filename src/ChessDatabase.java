@@ -155,6 +155,8 @@ public class ChessDatabase {
             pstmt.setInt(2, playerId);
             pstmt.setInt(3, limit);
             ResultSet rs = pstmt.executeQuery();
+            System.out.println("查询玩家 " + playerId + " 的对局记录");
+            
             while (rs.next()) {
                 GameRecord record = new GameRecord();
                 record.setRecordId(rs.getInt("id"));
@@ -165,9 +167,43 @@ public class ChessDatabase {
                 record.setWinnerId(rs.getInt("winner_id"));
                 record.setWinnerName(rs.getString("winner_name"));
                 record.setGameDurationSeconds(rs.getLong("game_duration"));
+                
+                // 改进时间字段处理
+                String startTimeStr = rs.getString("start_time");
+                String endTimeStr = rs.getString("end_time");
+                
+                try {
+                    if (startTimeStr != null && !startTimeStr.isEmpty()) {
+                        if (startTimeStr.contains(" ")) {
+                            record.setStartTime(LocalDateTime.parse(startTimeStr.replace(" ", "T")));
+                        } else {
+                            record.setStartTime(LocalDateTime.parse(startTimeStr));
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("解析开始时间失败: " + startTimeStr);
+                    record.setStartTime(LocalDateTime.now());
+                }
+                
+                try {
+                    if (endTimeStr != null && !endTimeStr.isEmpty()) {
+                        if (endTimeStr.contains(" ")) {
+                            record.setEndTime(LocalDateTime.parse(endTimeStr.replace(" ", "T")));
+                        } else {
+                            record.setEndTime(LocalDateTime.parse(endTimeStr));
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("解析结束时间失败: " + endTimeStr);
+                    record.setEndTime(LocalDateTime.now());
+                }
+                
                 records.add(record);
+                System.out.println("对局: " + record.getRedPlayerName() + " vs " + record.getBlackPlayerName());
             }
+            System.out.println("对局记录加载完成，共 " + records.size() + " 条记录");
         } catch (SQLException e) {
+            System.err.println("查询对局记录失败: " + e.getMessage());
             e.printStackTrace();
         }
         return records;
@@ -176,10 +212,11 @@ public class ChessDatabase {
     public List<PlayerInfo> getLeaderboard(int limit) {
         List<PlayerInfo> leaderboard = new ArrayList<>();
         String sql = "SELECT * FROM players ORDER BY wins DESC, " +
-                "(CAST(wins AS FLOAT) / total_games) DESC LIMIT ?";
+                "CASE WHEN total_games > 0 THEN (CAST(wins AS FLOAT) / total_games) ELSE 0 END DESC LIMIT ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, limit);
             ResultSet rs = pstmt.executeQuery();
+            System.out.println("查询排行榜数据，共找到 " + limit + " 个玩家");
             while (rs.next()) {
                 PlayerInfo player = new PlayerInfo();
                 player.setPlayerId(rs.getInt("id"));
@@ -188,8 +225,11 @@ public class ChessDatabase {
                 player.setWins(rs.getInt("wins"));
                 player.setLosses(rs.getInt("losses"));
                 leaderboard.add(player);
+                System.out.println("玩家: " + player.getPlayerName() + " 胜场: " + player.getWins());
             }
+            System.out.println("排行榜数据加载完成，共 " + leaderboard.size() + " 个玩家");
         } catch (SQLException e) {
+            System.err.println("查询排行榜失败: " + e.getMessage());
             e.printStackTrace();
         }
         return leaderboard;

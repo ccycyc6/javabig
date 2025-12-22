@@ -355,13 +355,28 @@ public class ChessClient extends JFrame {
         leaderboardFrame.setSize(800, 600);
         leaderboardFrame.setLocationRelativeTo(this);
         
+        // 重构：先创建面板，设置玩家信息，再显示窗口
         LeaderboardPanel panel = new LeaderboardPanel(database);
+        
+        // 确保玩家信息设置完成后再显示窗口
         if (playerId > 0) {
+            System.out.println("设置排行榜玩家信息: " + playerName + " (ID: " + playerId + ")");
             panel.setCurrentPlayer(playerId, playerName);
+        } else {
+            System.out.println("未登录用户查看排行榜");
         }
         
         leaderboardFrame.add(panel);
+        
+        // 添加窗口监听器，确保窗口完全显示后数据已加载
+        leaderboardFrame.addWindowStateListener(e -> {
+            if (e.getNewState() == Frame.NORMAL) {
+                System.out.println("排行榜窗口已显示");
+            }
+        });
+        
         leaderboardFrame.setVisible(true);
+        System.out.println("排行榜窗口已打开");
     }
     
     private class ChessBoardPanel extends JPanel {
