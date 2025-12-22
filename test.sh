@@ -3,33 +3,43 @@
 echo "中国象棋游戏测试脚本"
 echo "===================="
 
-# 启动服务器
-echo "启动服务器..."
-java ChessServer &
-SERVER_PID=$!
+# clean
+rm -rf build
 
-# 等待服务器启动
+echo "compiling..."
+mkdir build
+javac -d build src/ChessClient.java src/ChessServer.java
+
 sleep 2
 
-# 启动两个客户端
-echo "启动客户端1..."
-java ChessClient &
+echo "open Server..."
+java -cp build src.ChessServer &
+SERVER_PID=$!
+
+sleep 2
+
+echo "start client 1..."
+java -cp build src.ChessClient &
 CLIENT1_PID=$!
 
 sleep 1
 
-echo "启动客户端2..."
-java ChessClient &
+echo "start client 2..."
+java -cp build src.ChessClient &
 CLIENT2_PID=$!
 
-echo "测试环境已启动！"
-echo "服务器PID: $SERVER_PID"
-echo "客户端1PID: $CLIENT1_PID"
-echo "客户端2PID: $CLIENT2_PID"
+echo "start client 3..."
+java -cp build src.ChessClient &
+CLIENT3_PID=$!
+
 echo ""
-echo "按任意键停止所有进程..."
+echo "Server PID: $SERVER_PID"
+echo "client1 PID: $CLIENT1_PID"
+echo "client2 PID: $CLIENT2_PID"
+echo "client3 PID: $CLIENT3_PID"
+echo ""
+echo "type any key to stop the program..."
 read -n 1
 
-# 清理进程
-kill $SERVER_PID $CLIENT1_PID $CLIENT2_PID 2>/dev/null
-echo "测试完成！"
+kill $SERVER_PID $CLIENT1_PID $CLIENT2_PID $CLIENT3_PID 2>/dev/null
+echo "finish test !"
