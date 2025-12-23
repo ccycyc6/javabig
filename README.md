@@ -320,12 +320,11 @@ CREATE TABLE game_records (
 ### Q: 数据库能升级吗？
 **A**: 可以，ChessDatabase 类使用标准 JDBC，可轻松升级到 MySQL 或 PostgreSQL。
 
-## � 详细文档
+##  详细文档
 
-- **[部署指南](DEPLOYMENT_GUIDE.md)** - 其他电脑如何运行这个游戏（作业提交指南）
 - **README.md** - 本文档，项目说明和功能介绍
 
-## �📄 许可证
+## 📄 许可证
 
 本项目仅供学习和交流使用。
 
@@ -334,3 +333,11 @@ CREATE TABLE game_records (
 **项目完成时间**: 2024年12月22日  
 **技术栈**: Java 8+ | Swing | SQLite | Socket | JDBC  
 **代码质量**: ⭐⭐⭐⭐⭐
+
+## 开发约定
+
+*   **代码风格**: 代码遵循标准的Java编码规范。
+*   **图形界面**: 图形界面使用Java Swing构建，UI组件结构清晰，用户体验良好。
+*   **网络通信**: 客户端和服务器通过TCP/IP套接字使用简单的基于文本的协议进行通信。协议由一组命令（如 `LOGIN`, `MOVE`, `CHAT`等）定义。
+*   **数据库**: 应用程序使用SQLite数据库来持久化数据。`ChessDatabase` 类封装了所有数据库操作，并使用 `PreparedStatement` 来防止SQL注入。
+*   **测试**: `test.sh` 脚本提供了一个基本的集成测试，通过启动一个服务器和多个客户端来完成。

@@ -23,6 +23,9 @@ public class ChessServer {
     private static int redPlayerId = -1;
     private static int blackPlayerId = -1;
     
+    // 记录游戏开始时间
+    private static LocalDateTime gameStartTimeExact = null;
+    
     public static void main(String[] args) {
         database = new ChessDatabase();
         initBoard();
@@ -33,21 +36,21 @@ public class ChessServer {
         timerExecutor = Executors.newSingleThreadScheduledExecutor();
         timerExecutor.scheduleAtFixedRate(() -> {
             if (!gameEnded) {
-                long elapsedSeconds = (System.currentTimeMillis() - gameStartTime) / 1000;
-                int minutes = (int) (elapsedSeconds / 60);
-                int seconds = (int) (elapsedSeconds % 60);
-                String timeMessage = "TIME:" + String.format("%02d:%02d", minutes, seconds);
+                var elapsedSeconds = (System.currentTimeMillis() - gameStartTime) / 1000;
+                var minutes = (int) (elapsedSeconds / 60);
+                var seconds = (int) (elapsedSeconds % 60);
+                var timeMessage = "TIME:" + String.format("%02d:%02d", minutes, seconds);
                 
-                for (ClientHandler client : clients) {
+                for (var client : clients) {
                     client.out.println(timeMessage);
                 }
             }
         }, 0, 1, TimeUnit.SECONDS);
         
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+        try (var serverSocket = new ServerSocket(PORT)) {
             while (true) {
-                Socket socket = serverSocket.accept();
-                ClientHandler client = new ClientHandler(socket);
+                var socket = serverSocket.accept();
+                var client = new ClientHandler(socket);
                 clients.add(client);
                 new Thread(client).start();
                 System.out.println("新玩家连接，当前玩家数: " + clients.size());
@@ -130,8 +133,8 @@ public class ChessServer {
                 while ((message = in.readLine()) != null) {
                     if (message.startsWith("LOGIN:")) {
                         // 处理登录消息: LOGIN:username
-                        String username = message.substring(6);
-                        PlayerInfo player = database.getPlayerByName(username);
+                        var username = message.substring(6);
+                        var player = database.getPlayerByName(username);
                         if (player != null) {
                             loggedIn = true;
                             if (playerColor.equals("红")) {
@@ -149,7 +152,7 @@ public class ChessServer {
                     } else if (message.startsWith("MOVE:")) {
                         handleMove(message.substring(5));
                     } else if (message.startsWith("CHAT:")) {
-                        String chatMsg = message.substring(5);
+                        var chatMsg = message.substring(5);
                         broadcastMessage(playerColor, chatMsg);
                     } else if (message.equals("GET_BOARD")) {
                         sendBoardToClient();
@@ -189,21 +192,21 @@ public class ChessServer {
                 return;
             }
             
-            String[] parts = moveData.split(",");
-            int fromRow = Integer.parseInt(parts[0]);
-            int fromCol = Integer.parseInt(parts[1]);
-            int toRow = Integer.parseInt(parts[2]);
-            int toCol = Integer.parseInt(parts[3]);
+            var parts = moveData.split(",");
+            var fromRow = Integer.parseInt(parts[0]);
+            var fromCol = Integer.parseInt(parts[1]);
+            var toRow = Integer.parseInt(parts[2]);
+            var toCol = Integer.parseInt(parts[3]);
             
             if (isValidMove(fromRow, fromCol, toRow, toCol)) {
-                String capturedPiece = board[toRow][toCol];
+                var capturedPiece = board[toRow][toCol];
                 board[toRow][toCol] = board[fromRow][fromCol];
                 board[fromRow][fromCol] = "  ";
                 
                 // 检查是否吃掉了将帅
                 if (capturedPiece.equals("帅") || capturedPiece.equals("將")) {
                     gameEnded = true;
-                    long gameTime = (System.currentTimeMillis() - gameStartTime) / 1000;
+                    var gameTime = (System.currentTimeMillis() - gameStartTime) / 1000;
                     sendBoardToAll();
                     broadcastMessage("系统", playerColor + "方获胜!");
                     broadcastMessage("游戏结束", playerColor + "方吃掉了对方的" + 
@@ -213,26 +216,34 @@ public class ChessServer {
                     // 保存对局记录到数据库
                     if (redPlayerId > 0 && blackPlayerId > 0) {
                         try {
-                            GameRecord record = new GameRecord(redPlayerId, redPlayerName, 
+                            var record = new GameRecord(redPlayerId, redPlayerName, 
                                                               blackPlayerId, blackPlayerName);
-                            int winnerId = playerColor.equals("红") ? redPlayerId : blackPlayerId;
-                            String winnerName = playerColor.equals("红") ? redPlayerName : blackPlayerName;
+                            var winnerId = playerColor.equals("红") ? redPlayerId : blackPlayerId;
+                            var winnerName = playerColor.equals("红") ? redPlayerName : blackPlayerName;
                             record.setWinnerId(winnerId);
                             record.setWinnerName(winnerName);
                             record.setGameDurationSeconds((int) gameTime);
-                            record.setStartTime(LocalDateTime.now().minusSeconds(gameTime));
+                            
+                            // 使用记录的精确开始时间
+                            if (gameStartTimeExact != null) {
+                                record.setStartTime(gameStartTimeExact);
+                            } else {
+                                // 如果没有精确时间，使用推算时间
+                                record.setStartTime(LocalDateTime.now().minusSeconds(gameTime));
+                            }
                             record.setEndTime(LocalDateTime.now());
                             
                             database.saveGameRecord(record);
                             database.updatePlayerStats(winnerId, true);
                             
                             // 更新失败者的统计
-                            int loserId = playerColor.equals("红") ? blackPlayerId : redPlayerId;
+                            var loserId = playerColor.equals("红") ? blackPlayerId : redPlayerId;
                             database.updatePlayerStats(loserId, false);
                             
                             System.out.println("对局已保存到数据库");
                         } catch (Exception e) {
                             System.out.println("保存对局记录失败: " + e.getMessage());
+                            e.printStackTrace();
                         }
                     }
                     
@@ -263,11 +274,12 @@ public class ChessServer {
         
         private boolean isInCheck(String color) {
                 // 找到将帅的位置
-                int kingRow = -1, kingCol = -1;
-                String kingChar = color.equals("红") ? "帅" : "將";
+                var kingRow = -1;
+                var kingCol = -1;
+                var kingChar = color.equals("红") ? "帅" : "將";
                 
-                for (int i = 0; i < 10; i++) {
-                    for (int j = 0; j < 9; j++) {
+                for (var i = 0; i < 10; i++) {
+                    for (var j = 0; j < 9; j++) {
                         if (board[i][j].equals(kingChar)) {
                             kingRow = i;
                             kingCol = j;
@@ -280,18 +292,18 @@ public class ChessServer {
                 if (kingRow == -1) return false;
                 
                 // 检查是否有对方棋子可以攻击将帅
-                for (int i = 0; i < 10; i++) {
-                    for (int j = 0; j < 9; j++) {
-                        String piece = board[i][j];
+                for (var i = 0; i < 10; i++) {
+                    for (var j = 0; j < 9; j++) {
+                        var piece = board[i][j];
                                             if (!piece.equals("  ")) {
-                                                boolean pieceIsRed = "车马相仕帅砲兵".contains(piece);
-                                                boolean kingIsRed = color.equals("红");
+                                                var pieceIsRed = "车马相仕帅砲兵".contains(piece);
+                                                var kingIsRed = color.equals("红");
                                                 
-                                                if (pieceIsRed != kingIsRed) {                                // 临时保存当前移动规则检查方法的状态
-                                if (isValidMove(i, j, kingRow, kingCol)) {
-                                    return true;
-                                }
-                            }
+                                                if (pieceIsRed != kingIsRed) {
+                                                    if (isValidMove(i, j, kingRow, kingCol)) {
+                                                        return true;
+                                                    }
+                                                }
                         }
                     }
                 }
@@ -313,31 +325,16 @@ public class ChessServer {
             }
             
             // 根据棋子类型判断移动规则
-            switch (piece) {
-                case "车":
-                case "車":
-                    return isValidRookMove(fromRow, fromCol, toRow, toCol);
-                case "马":
-                case "馬":
-                    return isValidKnightMove(fromRow, fromCol, toRow, toCol);
-                case "相":
-                case "象":
-                    return isValidElephantMove(fromRow, fromCol, toRow, toCol, piece.equals("相"));
-                case "仕":
-                case "士":
-                    return isValidAdvisorMove(fromRow, fromCol, toRow, toCol, piece.equals("仕"));
-                case "帅":
-                case "將":
-                    return isValidKingMove(fromRow, fromCol, toRow, toCol, piece.equals("帅"));
-                case "炮":
-                case "砲":
-                    return isValidCannonMove(fromRow, fromCol, toRow, toCol);
-                case "兵":
-                case "卒":
-                    return isValidPawnMove(fromRow, fromCol, toRow, toCol, piece.equals("兵"));
-                default:
-                    return false;
-            }
+            return switch (piece) {
+                case "车", "車" -> isValidRookMove(fromRow, fromCol, toRow, toCol);
+                case "马", "馬" -> isValidKnightMove(fromRow, fromCol, toRow, toCol);
+                case "相", "象" -> isValidElephantMove(fromRow, fromCol, toRow, toCol, piece.equals("相"));
+                case "仕", "士" -> isValidAdvisorMove(fromRow, fromCol, toRow, toCol, piece.equals("仕"));
+                case "帅", "將" -> isValidKingMove(fromRow, fromCol, toRow, toCol, piece.equals("帅"));
+                case "炮", "砲" -> isValidCannonMove(fromRow, fromCol, toRow, toCol);
+                case "兵", "卒" -> isValidPawnMove(fromRow, fromCol, toRow, toCol, piece.equals("兵"));
+                default -> false;
+            };
         }
         
         private boolean isValidRookMove(int fromRow, int fromCol, int toRow, int toCol) {
@@ -346,15 +343,15 @@ public class ChessServer {
             
             // 检查路径上是否有棋子
             if (fromRow == toRow) {
-                int start = Math.min(fromCol, toCol) + 1;
-                int end = Math.max(fromCol, toCol);
-                for (int col = start; col < end; col++) {
+                var start = Math.min(fromCol, toCol) + 1;
+                var end = Math.max(fromCol, toCol);
+                for (var col = start; col < end; col++) {
                     if (!board[fromRow][col].equals("  ")) return false;
                 }
             } else {
-                int start = Math.min(fromRow, toRow) + 1;
-                int end = Math.max(fromRow, toRow);
-                for (int row = start; row < end; row++) {
+                var start = Math.min(fromRow, toRow) + 1;
+                var end = Math.max(fromRow, toRow);
+                for (var row = start; row < end; row++) {
                     if (!board[row][fromCol].equals("  ")) return false;
                 }
             }
@@ -363,8 +360,8 @@ public class ChessServer {
         
         private boolean isValidKnightMove(int fromRow, int fromCol, int toRow, int toCol) {
             // 马走日字
-            int rowDiff = Math.abs(toRow - fromRow);
-            int colDiff = Math.abs(toCol - fromCol);
+            var rowDiff = Math.abs(toRow - fromRow);
+            var colDiff = Math.abs(toCol - fromCol);
             
             if (!((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2))) {
                 return false;
@@ -372,10 +369,10 @@ public class ChessServer {
             
             // 检查马脚
             if (rowDiff == 2) {
-                int blockRow = fromRow + (toRow - fromRow) / 2;
+                var blockRow = fromRow + (toRow - fromRow) / 2;
                 if (!board[blockRow][fromCol].equals("  ")) return false;
             } else {
-                int blockCol = fromCol + (toCol - fromCol) / 2;
+                var blockCol = fromCol + (toCol - fromCol) / 2;
                 if (!board[fromRow][blockCol].equals("  ")) return false;
             }
             return true;
@@ -383,8 +380,8 @@ public class ChessServer {
         
         private boolean isValidElephantMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
             // 相/象走田字，不能过河
-            int rowDiff = Math.abs(toRow - fromRow);
-            int colDiff = Math.abs(toCol - fromCol);
+            var rowDiff = Math.abs(toRow - fromRow);
+            var colDiff = Math.abs(toCol - fromCol);
             
             if (rowDiff != 2 || colDiff != 2) return false;
             
@@ -393,8 +390,8 @@ public class ChessServer {
             if (!isRed && toRow > 4) return false;
             
             // 检查象眼
-            int midRow = (fromRow + toRow) / 2;
-            int midCol = (fromCol + toCol) / 2;
+            var midRow = (fromRow + toRow) / 2;
+            var midCol = (fromCol + toCol) / 2;
             if (!board[midRow][midCol].equals("  ")) return false;
             
             return true;
@@ -402,8 +399,8 @@ public class ChessServer {
         
         private boolean isValidAdvisorMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
             // 仕/士走斜线，只能在九宫格内
-            int rowDiff = Math.abs(toRow - fromRow);
-            int colDiff = Math.abs(toCol - fromCol);
+            var rowDiff = Math.abs(toRow - fromRow);
+            var colDiff = Math.abs(toCol - fromCol);
             
             if (rowDiff != 1 || colDiff != 1) return false;
             
@@ -419,8 +416,8 @@ public class ChessServer {
         
         private boolean isValidKingMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
             // 帅/将走一步，只能在九宫格内
-            int rowDiff = Math.abs(toRow - fromRow);
-            int colDiff = Math.abs(toCol - fromCol);
+            var rowDiff = Math.abs(toRow - fromRow);
+            var colDiff = Math.abs(toCol - fromCol);
             
             if (rowDiff + colDiff != 1) return false;
             
@@ -432,13 +429,13 @@ public class ChessServer {
             }
             
             // 检查将帅对面
-            String targetPiece = board[toRow][toCol];
+            var targetPiece = board[toRow][toCol];
             if ((targetPiece.equals("帅") && !isRed) || (targetPiece.equals("將") && isRed)) {
                 // 将帅对面，检查中间是否有棋子
                 if (fromCol == toCol) {
-                    int start = Math.min(fromRow, toRow) + 1;
-                    int end = Math.max(fromRow, toRow);
-                    for (int row = start; row < end; row++) {
+                    var start = Math.min(fromRow, toRow) + 1;
+                    var end = Math.max(fromRow, toRow);
+                    for (var row = start; row < end; row++) {
                         if (!board[row][fromCol].equals("  ")) return false;
                     }
                     return true;
@@ -452,19 +449,19 @@ public class ChessServer {
             // 炮走直线
             if (fromRow != toRow && fromCol != toCol) return false;
             
-            int pieceCount = 0;
+            var pieceCount = 0;
             
             // 计算路径上的棋子数量
             if (fromRow == toRow) {
-                int start = Math.min(fromCol, toCol) + 1;
-                int end = Math.max(fromCol, toCol);
-                for (int col = start; col < end; col++) {
+                var start = Math.min(fromCol, toCol) + 1;
+                var end = Math.max(fromCol, toCol);
+                for (var col = start; col < end; col++) {
                     if (!board[fromRow][col].equals("  ")) pieceCount++;
                 }
             } else {
-                int start = Math.min(fromRow, toRow) + 1;
-                int end = Math.max(fromRow, toRow);
-                for (int row = start; row < end; row++) {
+                var start = Math.min(fromRow, toRow) + 1;
+                var end = Math.max(fromRow, toRow);
+                for (var row = start; row < end; row++) {
                     if (!board[row][fromCol].equals("  ")) pieceCount++;
                 }
             }
@@ -479,8 +476,8 @@ public class ChessServer {
         
         private boolean isValidPawnMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
             // 兵/卒的移动规则
-            int rowDiff = toRow - fromRow;
-            int colDiff = Math.abs(toCol - fromCol);
+            var rowDiff = toRow - fromRow;
+            var colDiff = Math.abs(toCol - fromCol);
             
             if (isRed) {
                 // 红兵向上走
@@ -531,6 +528,7 @@ public class ChessServer {
         initBoard();
         currentPlayer = "红";
         gameStartTime = System.currentTimeMillis();
+        gameStartTimeExact = LocalDateTime.now(); // 记录精确的游戏开始时间
         gameEnded = false;
         System.out.println("新游戏开始，红方先走");
         

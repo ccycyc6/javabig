@@ -25,29 +25,33 @@ public class ChessDatabase {
     }
     
     private void createTables() {
-        String playerTable = "CREATE TABLE IF NOT EXISTS players (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "name TEXT UNIQUE NOT NULL," +
-                "password TEXT NOT NULL," +
-                "total_games INTEGER DEFAULT 0," +
-                "wins INTEGER DEFAULT 0," +
-                "losses INTEGER DEFAULT 0," +
-                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                "last_played_at TIMESTAMP)";
+        String playerTable = """
+            CREATE TABLE IF NOT EXISTS players (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                total_games INTEGER DEFAULT 0,
+                wins INTEGER DEFAULT 0,
+                losses INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_played_at TIMESTAMP
+            )""";
         
-        String recordTable = "CREATE TABLE IF NOT EXISTS game_records (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "red_player_id INTEGER," +
-                "red_player_name TEXT," +
-                "black_player_id INTEGER," +
-                "black_player_name TEXT," +
-                "winner_id INTEGER," +
-                "winner_name TEXT," +
-                "game_duration INTEGER," +
-                "start_time TIMESTAMP," +
-                "end_time TIMESTAMP," +
-                "FOREIGN KEY(red_player_id) REFERENCES players(id)," +
-                "FOREIGN KEY(black_player_id) REFERENCES players(id))";
+        String recordTable = """
+            CREATE TABLE IF NOT EXISTS game_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                red_player_id INTEGER,
+                red_player_name TEXT,
+                black_player_id INTEGER,
+                black_player_name TEXT,
+                winner_id INTEGER,
+                winner_name TEXT,
+                game_duration INTEGER,
+                start_time TIMESTAMP,
+                end_time TIMESTAMP,
+                FOREIGN KEY(red_player_id) REFERENCES players(id),
+                FOREIGN KEY(black_player_id) REFERENCES players(id)
+            )""";
         
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(playerTable);
@@ -59,8 +63,8 @@ public class ChessDatabase {
     
     // Player operations
     public boolean registerPlayer(String name, String password) {
-        String sql = "INSERT INTO players(name, password) VALUES(?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        var sql = "INSERT INTO players(name, password) VALUES(?, ?)";
+        try (var pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
             pstmt.setString(2, password);
             pstmt.executeUpdate();
@@ -72,13 +76,13 @@ public class ChessDatabase {
     }
     
     public PlayerInfo loginPlayer(String name, String password) {
-        String sql = "SELECT * FROM players WHERE name = ? AND password = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        var sql = "SELECT * FROM players WHERE name = ? AND password = ?";
+        try (var pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
             pstmt.setString(2, password);
-            ResultSet rs = pstmt.executeQuery();
+            var rs = pstmt.executeQuery();
             if (rs.next()) {
-                PlayerInfo player = new PlayerInfo();
+                var player = new PlayerInfo();
                 player.setPlayerId(rs.getInt("id"));
                 player.setPlayerName(rs.getString("name"));
                 player.setPassword(rs.getString("password"));
@@ -94,12 +98,12 @@ public class ChessDatabase {
     }
     
     public PlayerInfo getPlayerByName(String name) {
-        String sql = "SELECT * FROM players WHERE name = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        var sql = "SELECT * FROM players WHERE name = ?";
+        try (var pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
-            ResultSet rs = pstmt.executeQuery();
+            var rs = pstmt.executeQuery();
             if (rs.next()) {
-                PlayerInfo player = new PlayerInfo();
+                var player = new PlayerInfo();
                 player.setPlayerId(rs.getInt("id"));
                 player.setPlayerName(rs.getString("name"));
                 player.setTotalGames(rs.getInt("total_games"));
@@ -114,10 +118,10 @@ public class ChessDatabase {
     }
     
     public void updatePlayerStats(int playerId, boolean isWinner) {
-        String sql = "UPDATE players SET total_games = total_games + 1, " +
+        var sql = "UPDATE players SET total_games = total_games + 1, " +
                 (isWinner ? "wins = wins + 1" : "losses = losses + 1") +
                 ", last_played_at = CURRENT_TIMESTAMP WHERE id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        try (var pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, playerId);
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -127,10 +131,13 @@ public class ChessDatabase {
     
     // Game record operations
     public void saveGameRecord(GameRecord record) {
-        String sql = "INSERT INTO game_records(red_player_id, red_player_name, " +
+        var sql = "INSERT INTO game_records(red_player_id, red_player_name, " +
                 "black_player_id, black_player_name, winner_id, winner_name, " +
                 "game_duration, start_time, end_time) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        try (var pstmt = connection.prepareStatement(sql)) {
+            var formatter = 
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            
             pstmt.setInt(1, record.getRedPlayerId());
             pstmt.setString(2, record.getRedPlayerName());
             pstmt.setInt(3, record.getBlackPlayerId());
@@ -138,8 +145,8 @@ public class ChessDatabase {
             pstmt.setInt(5, record.getWinnerId());
             pstmt.setString(6, record.getWinnerName());
             pstmt.setLong(7, record.getGameDurationSeconds());
-            pstmt.setString(8, record.getStartTime().toString());
-            pstmt.setString(9, record.getEndTime().toString());
+            pstmt.setString(8, record.getStartTime().format(formatter));
+            pstmt.setString(9, record.getEndTime().format(formatter));
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -147,18 +154,18 @@ public class ChessDatabase {
     }
     
     public List<GameRecord> getGameHistory(int playerId, int limit) {
-        List<GameRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM game_records WHERE red_player_id = ? OR black_player_id = ? " +
+        var records = new ArrayList<GameRecord>();
+        var sql = "SELECT * FROM game_records WHERE red_player_id = ? OR black_player_id = ? " +
                 "ORDER BY start_time DESC LIMIT ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        try (var pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, playerId);
             pstmt.setInt(2, playerId);
             pstmt.setInt(3, limit);
-            ResultSet rs = pstmt.executeQuery();
+            var rs = pstmt.executeQuery();
             System.out.println("查询玩家 " + playerId + " 的对局记录");
             
             while (rs.next()) {
-                GameRecord record = new GameRecord();
+                var record = new GameRecord();
                 record.setRecordId(rs.getInt("id"));
                 record.setRedPlayerId(rs.getInt("red_player_id"));
                 record.setRedPlayerName(rs.getString("red_player_name"));
@@ -169,33 +176,25 @@ public class ChessDatabase {
                 record.setGameDurationSeconds(rs.getLong("game_duration"));
                 
                 // 改进时间字段处理
-                String startTimeStr = rs.getString("start_time");
-                String endTimeStr = rs.getString("end_time");
+                var startTimeStr = rs.getString("start_time");
+                var endTimeStr = rs.getString("end_time");
                 
                 try {
                     if (startTimeStr != null && !startTimeStr.isEmpty()) {
-                        if (startTimeStr.contains(" ")) {
-                            record.setStartTime(LocalDateTime.parse(startTimeStr.replace(" ", "T")));
-                        } else {
-                            record.setStartTime(LocalDateTime.parse(startTimeStr));
-                        }
+                        record.setStartTime(LocalDateTime.parse(startTimeStr, 
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                     }
                 } catch (Exception e) {
                     System.err.println("解析开始时间失败: " + startTimeStr);
-                    record.setStartTime(LocalDateTime.now());
                 }
                 
                 try {
                     if (endTimeStr != null && !endTimeStr.isEmpty()) {
-                        if (endTimeStr.contains(" ")) {
-                            record.setEndTime(LocalDateTime.parse(endTimeStr.replace(" ", "T")));
-                        } else {
-                            record.setEndTime(LocalDateTime.parse(endTimeStr));
-                        }
+                        record.setEndTime(LocalDateTime.parse(endTimeStr, 
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                     }
                 } catch (Exception e) {
                     System.err.println("解析结束时间失败: " + endTimeStr);
-                    record.setEndTime(LocalDateTime.now());
                 }
                 
                 records.add(record);
@@ -210,15 +209,16 @@ public class ChessDatabase {
     }
     
     public List<PlayerInfo> getLeaderboard(int limit) {
-        List<PlayerInfo> leaderboard = new ArrayList<>();
-        String sql = "SELECT * FROM players ORDER BY wins DESC, " +
-                "CASE WHEN total_games > 0 THEN (CAST(wins AS FLOAT) / total_games) ELSE 0 END DESC LIMIT ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        var leaderboard = new ArrayList<PlayerInfo>();
+        var sql = "SELECT * FROM players ORDER BY " +
+                "CASE WHEN total_games > 0 THEN (CAST(wins AS FLOAT) / total_games) ELSE 0 END DESC, " +
+                "wins DESC LIMIT ?";
+        try (var pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, limit);
-            ResultSet rs = pstmt.executeQuery();
+            var rs = pstmt.executeQuery();
             System.out.println("查询排行榜数据，共找到 " + limit + " 个玩家");
             while (rs.next()) {
-                PlayerInfo player = new PlayerInfo();
+                var player = new PlayerInfo();
                 player.setPlayerId(rs.getInt("id"));
                 player.setPlayerName(rs.getString("name"));
                 player.setTotalGames(rs.getInt("total_games"));
@@ -234,6 +234,7 @@ public class ChessDatabase {
         }
         return leaderboard;
     }
+    
     
     public void closeConnection() {
         try {

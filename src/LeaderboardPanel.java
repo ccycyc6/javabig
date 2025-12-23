@@ -77,7 +77,7 @@ public class LeaderboardPanel extends JPanel {
         panel.setBorder(createTitleBorder("我的对局记录"));
 
         gameHistoryTable = createTable(
-                new String[]{"红方", "黑方", "胜者", "时长(秒)", "时间"}
+                new String[]{"对局时间", "我的角色", "对局结果", "对手", "对局时长"}
         );
 
         JScrollPane sp = new JScrollPane(gameHistoryTable);
@@ -245,15 +245,55 @@ public class LeaderboardPanel extends JPanel {
         }
 
         for (GameRecord r : list) {
-            String time = r.getStartTime() == null
-                    ? ""
-                    : r.getStartTime().toString().substring(0, 19);
+            // My Role, Opponent, Result
+            String myRole;
+            String opponentName;
+            String result;
+
+            if (currentPlayerId == r.getRedPlayerId()) {
+                myRole = "红";
+                opponentName = r.getBlackPlayerName();
+            } else {
+                myRole = "黑";
+                opponentName = r.getRedPlayerName();
+            }
+
+            if (r.getWinnerId() == -1) {
+                result = "和";
+            } else if (currentPlayerId == r.getWinnerId()) {
+                result = "赢";
+            } else {
+                result = "输";
+            }
+            
+            // Time
+            String time = "";
+            if (r.getStartTime() != null) {
+                try {
+                    time = r.getStartTime().format(
+                        java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")
+                    );
+                } catch (Exception e) {
+                    String timeStr = r.getStartTime().toString();
+                    time = timeStr.length() > 16 ? timeStr.substring(5, 16) : timeStr;
+                }
+            }
+            
+            // Duration
+            String duration = "";
+            if (r.getGameDurationSeconds() > 0) {
+                long seconds = r.getGameDurationSeconds();
+                long minutes = seconds / 60;
+                long remainingSeconds = seconds % 60;
+                duration = String.format("%d分 %02d秒", minutes, remainingSeconds);
+            }
+            
             m.addRow(new Object[]{
-                    r.getRedPlayerName(),
-                    r.getBlackPlayerName(),
-                    r.getWinnerName(),
-                    r.getGameDurationSeconds(),
-                    time
+                    time,
+                    myRole,
+                    result,
+                    opponentName,
+                    duration
             });
         }
     }
