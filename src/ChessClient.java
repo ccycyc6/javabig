@@ -30,18 +30,18 @@ public class ChessClient extends JFrame {
     private Point selectedPiece = null;
     private Point possibleMove = null;
     
-    // 音效和动画
+    // Sound and animation
     private SoundManager soundManager;
     private Map<String, Point> piecePositions = new HashMap<>();
     private boolean isAnimating = false;
     
-    // 视角旋转
+    // View rotation
     private boolean shouldRotateBoard = false;
     
-    // 游戏计时
+    // Game timer
     private String currentTime = "00:00";
     
-    // 数据库相关
+    // Database related
     private ChessDatabase database;
     private int playerId = -1;
     private String playerName = "";
@@ -49,40 +49,40 @@ public class ChessClient extends JFrame {
     private JLabel playerInfoLabel;
     
     public ChessClient() {
-        setTitle("中国象棋网络版");
+        setTitle("Chinese Chess Online");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
         
-        // 设置窗口大小和位置
+        // Set window size and position
         setSize(1400, 1000);
         setLocationRelativeTo(null);
         setMinimumSize(new Dimension(1200, 900));
         
-        // 设置整体外观
+        // Set overall look and feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             e.printStackTrace();
         }
         
-        // 初始化数据库
+        // Initialize database
         database = new ChessDatabase();
         
-        // 显示登录对话框
+        // Show login dialog
         var loginDialog = new LoginDialog(this, database);
         playerName = loginDialog.getLoginResult();
         
         if (playerName == null || playerName.isEmpty()) {
-            // 用户取消登录
+            // User cancelled login
             System.exit(0);
             return;
         }
         
-        // 获取玩家ID
+        // Get player ID
         var player = database.getPlayerByName(playerName);
         if (player != null) {
             playerId = player.getPlayerId();
-            System.out.println("玩家 " + playerName + " 已登录，ID: " + playerId);
+            System.out.println("Player " + playerName + " logged in, ID: " + playerId);
         }
         
         initBoard();
@@ -110,7 +110,7 @@ public class ChessClient extends JFrame {
         titlePanel.setBackground(new Color(139, 69, 19));
         titlePanel.setPreferredSize(new Dimension(0, 80));
         
-        titleLabel = new JLabel("中国象棋", JLabel.CENTER);
+        titleLabel = new JLabel("Chinese Chess", JLabel.CENTER);
         titleLabel.setFont(new Font("楷体", Font.BOLD, 42));
         titleLabel.setForeground(new Color(255, 215, 0));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
@@ -126,29 +126,29 @@ public class ChessClient extends JFrame {
         
         var gbc = new GridBagConstraints();
         
-        // 创建棋盘面板
+        // Create chessboard panel
         boardPanel = new ChessBoardPanel();
         boardPanel.setPreferredSize(new Dimension(
             BOARD_WIDTH * CELL_SIZE + BOARD_MARGIN * 2, 
             BOARD_HEIGHT * CELL_SIZE + BOARD_MARGIN * 2
         ));
-        boardPanel.setMinimumSize(new Dimension(400, 400)); // 设置最小尺寸
+        boardPanel.setMinimumSize(new Dimension(400, 400)); // Set minimum size
         
-        // 棋盘面板布局设置 - 占用主要空间
+        // Chessboard panel layout settings - occupy main space
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 1.0; // 棋盘占用剩余空间
+        gbc.weightx = 1.0; // Chessboard occupies remaining space
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.CENTER;
         mainPanel.add(boardPanel, gbc);
         
-        // 创建右侧面板
+        // Create right panel
         var rightPanel = createRightPanel();
         
-        // 右侧面板布局设置 - 固定宽度
+        // Right panel layout settings - fixed width
         gbc.gridx = 1;
-        gbc.weightx = 0.0; // 右侧面板不扩展，保持固定宽度
+        gbc.weightx = 0.0; // Right panel does not expand, maintains fixed width
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTH;
@@ -157,7 +157,7 @@ public class ChessClient extends JFrame {
         
         add(mainPanel, BorderLayout.CENTER);
         
-        // 添加组件监听器，实现窗口大小变化时的自适应
+        // Add component listener to implement adaptive window size changes
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -170,23 +170,23 @@ public class ChessClient extends JFrame {
             }
         });
         
-        // 添加窗口状态监听
+        // Add window state listener
         addWindowStateListener(new WindowAdapter() {
             @Override
             public void windowStateChanged(WindowEvent e) {
-                // 窗口状态改变时重新调整布局
+                // Readjust layout when window state changes
                 SwingUtilities.invokeLater(() -> adjustLayout());
             }
         });
     }
     
     private void adjustLayout() {
-        // 强制重新计算棋盘尺寸
+        // Force recalculation of chessboard size
         if (boardPanel != null) {
             boardPanel.calculateOptimalSize();
         }
         
-        // 确保布局更新
+        // Ensure layout update
         revalidate();
         repaint();
     }
@@ -194,13 +194,13 @@ public class ChessClient extends JFrame {
     private JPanel createRightPanel() {
         var rightPanel = new JPanel(new BorderLayout(10, 10));
         rightPanel.setBackground(new Color(245, 222, 179));
-        rightPanel.setPreferredSize(new Dimension(650, 0)); // 设置首选宽度为650px
-        rightPanel.setMinimumSize(new Dimension(300, 0)); // 最小宽度 300px
+        rightPanel.setPreferredSize(new Dimension(650, 0)); // Set preferred width to 650px
+        rightPanel.setMinimumSize(new Dimension(300, 0)); // Minimum width 300px
         
-        // 游戏信息面板
+        // Game information panel
         var infoPanel = createGameInfoPanel();
         
-        // 聊天面板
+        // Chat panel
         var chatPanel = createChatPanel();
         
         rightPanel.add(infoPanel, BorderLayout.NORTH);
@@ -214,24 +214,24 @@ public class ChessClient extends JFrame {
         infoPanel.setBackground(new Color(222, 184, 135));
         infoPanel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(new Color(139, 69, 19), 2),
-            "游戏信息",
+            "Game Information",
             0,
             0,
             new Font("宋体", Font.BOLD, 14),
             new Color(139, 69, 19)
         ));
-        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90)); // 减少高度
-        infoPanel.setPreferredSize(new Dimension(0, 90)); // 设置首选高度
+        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90)); // Reduce height
+        infoPanel.setPreferredSize(new Dimension(0, 90)); // Set preferred height
         
-        var playerLabel = new JLabel("等待分配...", JLabel.CENTER);
+        var playerLabel = new JLabel("Waiting for assignment...", JLabel.CENTER);
         playerLabel.setFont(new Font("宋体", Font.PLAIN, 14));
         playerLabel.setName("playerLabel");
         
-        var turnLabel = new JLabel("当前回合: 红", JLabel.CENTER);
+        var turnLabel = new JLabel("Current turn: Red", JLabel.CENTER);
         turnLabel.setFont(new Font("宋体", Font.PLAIN, 14));
         turnLabel.setName("turnLabel");
         
-        var timeLabel = new JLabel("游戏时间: 00:00", JLabel.CENTER);
+        var timeLabel = new JLabel("Game time: 00:00", JLabel.CENTER);
         timeLabel.setFont(new Font("宋体", Font.PLAIN, 14));
         
         infoPanel.add(playerLabel);
@@ -246,7 +246,7 @@ public class ChessClient extends JFrame {
         chatPanel.setBackground(new Color(245, 222, 179));
         chatPanel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(new Color(139, 69, 19), 2),
-            "聊天窗口",
+            "Chat Window",
             0,
             0,
             new Font("宋体", Font.BOLD, 14),
@@ -285,7 +285,7 @@ public class ChessClient extends JFrame {
         ));
         chatInput.addActionListener(e -> sendChatMessage());
         
-        var sendButton = new JButton("发送");
+        var sendButton = new JButton("Send");
         sendButton.setFont(new Font("微软雅黑", Font.BOLD, 12));
         sendButton.setBackground(new Color(139, 69, 19));
         sendButton.setForeground(Color.WHITE);
@@ -309,11 +309,11 @@ public class ChessClient extends JFrame {
         statusPanel.setPreferredSize(new Dimension(0, 40));
         statusPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         
-        statusLabel = new JLabel("等待连接服务器...");
+        statusLabel = new JLabel("Waiting to connect to server...");
         statusLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
         statusLabel.setForeground(Color.WHITE);
         
-        playerInfoLabel = new JLabel("玩家: " + playerName);
+        playerInfoLabel = new JLabel("Player: " + playerName);
         playerInfoLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         playerInfoLabel.setForeground(Color.WHITE);
         
@@ -327,16 +327,16 @@ public class ChessClient extends JFrame {
         menuBar.setBackground(new Color(139, 69, 19));
         menuBar.setForeground(Color.WHITE);
         
-        var gameMenu = new JMenu("游戏");
+        var gameMenu = new JMenu("Game");
         gameMenu.setForeground(Color.WHITE);
         
-        var leaderboardItem = new JMenuItem("查看排行榜");
+        var leaderboardItem = new JMenuItem("View Leaderboard");
         leaderboardItem.addActionListener(e -> showLeaderboard());
         gameMenu.add(leaderboardItem);
         
         gameMenu.addSeparator();
         
-        var exitItem = new JMenuItem("退出");
+        var exitItem = new JMenuItem("Exit");
         exitItem.addActionListener(e -> {
             if (database != null) {
                 database.closeConnection();
@@ -350,33 +350,33 @@ public class ChessClient extends JFrame {
     }
     
     private void showLeaderboard() {
-        var leaderboardFrame = new JFrame("排行榜 - " + playerName);
+        var leaderboardFrame = new JFrame("Leaderboard - " + playerName);
         leaderboardFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         leaderboardFrame.setSize(800, 600);
         leaderboardFrame.setLocationRelativeTo(this);
         
-        // 重构：先创建面板，设置玩家信息，再显示窗口
+        // Refactor: create panel first, set player info, then show window
         var panel = new LeaderboardPanel(database);
         
-        // 确保玩家信息设置完成后再显示窗口
+        // Ensure player info is set before showing window
         if (playerId > 0) {
-            System.out.println("设置排行榜玩家信息: " + playerName + " (ID: " + playerId + ")");
+            System.out.println("Setting leaderboard player info: " + playerName + " (ID: " + playerId + ")");
             panel.setCurrentPlayer(playerId, playerName);
         } else {
-            System.out.println("未登录用户查看排行榜");
+            System.out.println("Unauthenticated user views leaderboard");
         }
         
         leaderboardFrame.add(panel);
         
-        // 添加窗口监听器，确保窗口完全显示后数据已加载
+        // Add window listener to ensure data is loaded after the window is fully displayed
         leaderboardFrame.addWindowStateListener(e -> {
             if (e.getNewState() == Frame.NORMAL) {
-                System.out.println("排行榜窗口已显示");
+System.out.println("Leaderboard window is displayed");
             }
         });
         
         leaderboardFrame.setVisible(true);
-        System.out.println("排行榜窗口已打开");
+        System.out.println("Leaderboard window opened");
     }
     
     private class ChessBoardPanel extends JPanel {
@@ -406,7 +406,7 @@ public class ChessClient extends JFrame {
                 }
             });
             
-            // 添加组件监听器来调整大小
+            // Add component listener to adjust size
             addComponentListener(new ComponentAdapter() {
                 @Override
                 public void componentResized(ComponentEvent e) {
@@ -419,35 +419,35 @@ public class ChessClient extends JFrame {
             var panelWidth = getWidth();
             var panelHeight = getHeight();
             
-            // 确保面板有有效尺寸
+// Ensure panel has valid dimensions
             if (panelWidth <= 0 || panelHeight <= 0) return;
             
-            // 计算可用的绘图区域（预留足够边距）
-            var availableWidth = panelWidth - 60; // 左右边距
-            var availableHeight = panelHeight - 60; // 上下边距
+            // Calculate available drawing area (reserve sufficient margin)
+            var availableWidth = panelWidth - 60; // Left and right margin
+            var availableHeight = panelHeight - 60; // Top and bottom margin
             
-            // 确保可用区域为正数
+            // Ensure available area is positive
             availableWidth = Math.max(availableWidth, 400);
             availableHeight = Math.max(availableHeight, 400);
             
-            // 计算最佳单元格大小（取较小值确保完整显示）
+            // Calculate optimal cell size (take the smaller value to ensure complete display)
             var maxCellWidth = availableWidth / BOARD_WIDTH;
             var maxCellHeight = availableHeight / BOARD_HEIGHT;
             
-            // 选择较小的尺寸确保棋盘完整显示
+            // Choose the smaller size to ensure the board is fully visible
             currentCellSize = Math.min(maxCellWidth, maxCellHeight);
             
-            // 设置合理的尺寸范围
-            currentCellSize = Math.max(currentCellSize, 30); // 最小30像素确保可读性
-            currentCellSize = Math.min(currentCellSize, 100); // 最大100像素防止过大
+            // Set a reasonable size range
+            currentCellSize = Math.max(currentCellSize, 30); // Minimum 30 pixels to ensure readability
+            currentCellSize = Math.min(currentCellSize, 100); // Maximum 100 pixels to prevent it from being too large
             
-            // 计算居中的边距
+            // Calculate centered margin
             var boardWidth = currentCellSize * BOARD_WIDTH;
             var boardHeight = currentCellSize * BOARD_HEIGHT;
             
             currentBoardMargin = Math.max((panelWidth - boardWidth) / 2, 20);
             currentBoardMargin = Math.max(currentBoardMargin, (panelHeight - boardHeight) / 2);
-            currentBoardMargin = Math.min(currentBoardMargin, 50); // 限制最大边距
+            currentBoardMargin = Math.min(currentBoardMargin, 50); // Limit maximum margin
             
             repaint();
         }
@@ -457,7 +457,7 @@ public class ChessClient extends JFrame {
             super.paintComponent(g);
             var g2d = (Graphics2D) g.create();
             
-            // 启用抗锯齿
+            // Enable anti-aliasing
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             
@@ -469,40 +469,40 @@ public class ChessClient extends JFrame {
         }
         
         private void drawBoard(Graphics2D g2d) {
-            // 绘制棋盘背景
+            // Draw chessboard background
             g2d.setColor(new Color(245, 222, 179));
             g2d.fillRect(0, 0, getWidth(), getHeight());
             
-            // 确保绘制区域在面板范围内
+            // Ensure the drawing area is within the panel
             var boardRight = currentBoardMargin + (BOARD_WIDTH - 1) * currentCellSize;
             var boardBottom = currentBoardMargin + (BOARD_HEIGHT - 1) * currentCellSize;
             
-            // 如果棋盘超出面板范围，调整边距
+            // If the board exceeds the panel range, adjust the margin
             if (boardRight > getWidth() || boardBottom > getHeight()) {
-                calculateOptimalSize(); // 重新计算尺寸
+                calculateOptimalSize(); // Recalculate size
                 return;
             }
             
-            // 绘制棋盘线
+            // Draw board lines
             g2d.setColor(new Color(139, 69, 19));
             g2d.setStroke(new BasicStroke(Math.max(2, currentCellSize / 30)));
             
-            // 横线
+            // Horizontal lines
             for (var i = 0; i < BOARD_HEIGHT; i++) {
                 var y = currentBoardMargin + i * currentCellSize;
                 g2d.drawLine(currentBoardMargin, y, 
                            currentBoardMargin + (BOARD_WIDTH - 1) * currentCellSize, y);
             }
             
-            // 竖线
+            // Vertical lines
             for (var i = 0; i < BOARD_WIDTH; i++) {
                 var x = currentBoardMargin + i * currentCellSize;
                 if (i == 0 || i == BOARD_WIDTH - 1) {
-                    // 边线画完整
+                    // Draw full border lines
                     g2d.drawLine(x, currentBoardMargin, 
                                x, currentBoardMargin + (BOARD_HEIGHT - 1) * currentCellSize);
                 } else {
-                    // 中间线在楚河汉界处断开
+                    // The middle line is broken at the river
                     g2d.drawLine(x, currentBoardMargin, 
                                x, currentBoardMargin + 4 * currentCellSize);
                     g2d.drawLine(x, currentBoardMargin + 5 * currentCellSize, 
@@ -510,21 +510,21 @@ public class ChessClient extends JFrame {
                 }
             }
             
-            // 绘制九宫格斜线
+            // Draw the palace diagonal lines
             g2d.setStroke(new BasicStroke(Math.max(2, currentCellSize / 30)));
-            // 上方九宫格
+            // Upper palace
             g2d.drawLine(currentBoardMargin + 3 * currentCellSize, currentBoardMargin,
                         currentBoardMargin + 5 * currentCellSize, currentBoardMargin + 2 * currentCellSize);
             g2d.drawLine(currentBoardMargin + 5 * currentCellSize, currentBoardMargin,
                         currentBoardMargin + 3 * currentCellSize, currentBoardMargin + 2 * currentCellSize);
             
-            // 下方九宫格
+            // Lower palace
             g2d.drawLine(currentBoardMargin + 3 * currentCellSize, currentBoardMargin + 7 * currentCellSize,
                         currentBoardMargin + 5 * currentCellSize, currentBoardMargin + 9 * currentCellSize);
             g2d.drawLine(currentBoardMargin + 5 * currentCellSize, currentBoardMargin + 7 * currentCellSize,
                         currentBoardMargin + 3 * currentCellSize, currentBoardMargin + 9 * currentCellSize);
             
-            // 绘制楚河汉界
+            // Draw the river
             g2d.setColor(new Color(160, 82, 45));
             var fontSize = Math.max(16, currentCellSize / 3);
             g2d.setFont(new Font("楷体", Font.BOLD, fontSize));
@@ -533,9 +533,9 @@ public class ChessClient extends JFrame {
             var textWidth = fm.stringWidth("楚河");
             var textHeight = fm.getHeight();
             
-            // 根据视角旋转决定文字位置和内容
+            // Determine text position and content based on view rotation
             if (shouldRotateBoard) {
-                // 黑方视角，文字需要旋转180度
+                // Black's perspective, text needs to be rotated 180 degrees
                 g2d.drawString("汉界", 
                              currentBoardMargin + currentCellSize * 2 - textWidth / 2,
                              currentBoardMargin + currentCellSize * 5 + textHeight / 2);
@@ -545,7 +545,7 @@ public class ChessClient extends JFrame {
                              currentBoardMargin + currentCellSize * 6 - textWidth / 2,
                              currentBoardMargin + currentCellSize * 5 + textHeight / 2);
             } else {
-                // 红方视角，正常显示
+                // Red's perspective, normal display
                 g2d.drawString("楚河", 
                              currentBoardMargin + currentCellSize * 2 - textWidth / 2,
                              currentBoardMargin + currentCellSize * 4 + textHeight / 2);
@@ -556,18 +556,18 @@ public class ChessClient extends JFrame {
                              currentBoardMargin + currentCellSize * 4 + textHeight / 2);
             }
             
-            // 绘制炮位和兵位标记
+            // Draw cannon and pawn markers
             g2d.setColor(new Color(139, 69, 19));
             int[] cannonPositions = {1, 7};
             int[] pawnPositions = {0, 2, 4, 6, 8};
             
-            // 绘制炮位
+            // Draw cannon positions
             for (var col : cannonPositions) {
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 2 * currentCellSize);
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 7 * currentCellSize);
             }
             
-            // 绘制兵位
+            // Draw pawn positions
             for (var col : pawnPositions) {
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 3 * currentCellSize);
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 6 * currentCellSize);
@@ -578,19 +578,19 @@ public class ChessClient extends JFrame {
             var size = Math.max(4, currentCellSize / 15);
             g2d.setStroke(new BasicStroke(Math.max(1, currentCellSize / 60)));
             
-            // 左上角
+            // Top left
             g2d.drawLine(x - size, y, x - size / 2, y);
             g2d.drawLine(x, y - size, x, y - size / 2);
             
-            // 右上角
+            // Top right
             g2d.drawLine(x + size / 2, y, x + size, y);
             g2d.drawLine(x, y - size, x, y - size / 2);
             
-            // 左下角
+            // Bottom left
             g2d.drawLine(x - size, y, x - size / 2, y);
             g2d.drawLine(x, y + size / 2, x, y + size);
             
-            // 右下角
+            // Bottom right
             g2d.drawLine(x + size / 2, y, x + size, y);
             g2d.drawLine(x, y + size / 2, x, y + size);
         }
@@ -604,12 +604,12 @@ public class ChessClient extends JFrame {
                     if (!board[i][j].equals("  ")) {
                         var piece = board[i][j];
                         
-                        // 转换坐标用于显示
+                        // Convert coordinates for display
                         var displayCoords = convertToDisplayCoordinates(i, j);
                         var x = currentBoardMargin + displayCoords[1] * currentCellSize;
                         var y = currentBoardMargin + displayCoords[0] * currentCellSize;
                         
-                        // 确保棋子在可见区域内
+                        // Ensure the piece is within the visible area
                         if (x >= 0 && y >= 0 && x < getWidth() && y < getHeight()) {
                             drawPiece(g2d, piece, x, y);
                         }
@@ -619,14 +619,14 @@ public class ChessClient extends JFrame {
         }
         
         private void drawPiece(Graphics2D g2d, String piece, int x, int y) {
-            // 判断棋子颜色
-            var isRed = "车马相仕帅砲兵".contains(piece);
+            // Determine piece color
+            var isRed = "车马相仕帅砲兵".contains(piece); // Chariot, Horse, Elephant, Advisor, General, Cannon, Pawn
             
-            // 计算棋子大小（根据单元格大小动态调整）
+            // Calculate piece size (dynamically adjusted based on cell size)
             var pieceSize = (int) (currentCellSize * 0.7);
             var pieceRadius = pieceSize / 2;
             
-            // 绘制棋子背景
+            // Draw piece background
             GradientPaint gradient;
             if (isRed) {
                 gradient = new GradientPaint(x - pieceRadius, y - pieceRadius, new Color(255, 200, 200),
@@ -639,12 +639,12 @@ public class ChessClient extends JFrame {
             g2d.setPaint(gradient);
             g2d.fillOval(x - pieceRadius, y - pieceRadius, pieceSize, pieceSize);
             
-            // 绘制棋子边框
+            // Draw piece border
             g2d.setColor(new Color(139, 69, 19));
             g2d.setStroke(new BasicStroke(Math.max(2, currentCellSize / 30)));
             g2d.drawOval(x - pieceRadius, y - pieceRadius, pieceSize, pieceSize);
             
-            // 绘制棋子文字
+            // Draw piece text
             g2d.setColor(isRed ? new Color(200, 0, 0) : Color.WHITE);
             var fontSize = Math.max(16, (int) (currentCellSize * 0.4));
             g2d.setFont(new Font("楷体", Font.BOLD, fontSize));
@@ -657,7 +657,7 @@ public class ChessClient extends JFrame {
         }
         
         private void drawSelection(Graphics2D g2d) {
-            // 绘制选中的棋子
+            // Draw selected piece
             if (selectedPiece != null) {
                 var displayCoords = convertToDisplayCoordinates(selectedPiece.x, selectedPiece.y);
                 var x = currentBoardMargin + displayCoords[1] * currentCellSize;
@@ -671,7 +671,7 @@ public class ChessClient extends JFrame {
                 g2d.drawOval(x - selectionSize/2, y - selectionSize/2, selectionSize, selectionSize);
             }
             
-            // 绘制可能的移动位置
+            // Draw possible move locations
             if (possibleMove != null) {
                 var displayCoords = convertToDisplayCoordinates(possibleMove.x, possibleMove.y);
                 var x = currentBoardMargin + displayCoords[1] * currentCellSize;
@@ -690,7 +690,7 @@ public class ChessClient extends JFrame {
             return new int[]{displayRow, displayCol};
         }
         
-        // 旋转180度
+        // Rotate 180 degrees
         var actualRow = BOARD_HEIGHT - 1 - displayRow;
         var actualCol = BOARD_WIDTH - 1 - displayCol;
         
@@ -702,7 +702,7 @@ public class ChessClient extends JFrame {
             return new int[]{actualRow, actualCol};
         }
         
-        // 旋转180度
+        // Rotate 180 degrees
         var displayRow = BOARD_HEIGHT - 1 - actualRow;
         var displayCol = BOARD_WIDTH - 1 - actualCol;
         
@@ -710,7 +710,7 @@ public class ChessClient extends JFrame {
     }
     
     private void handleBoardClick(MouseEvent e) {
-        // 获取当前棋盘面板的尺寸
+        // Get the size of the current chessboard panel
         var panel = (ChessBoardPanel) e.getSource();
         var displayRow = (e.getY() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
         var displayCol = (e.getX() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
@@ -736,7 +736,7 @@ public class ChessClient extends JFrame {
                 }
             }
         } else {
-            // 检查是否点击了同一个位置（取消选择）
+            // Check if the same position is clicked (deselect)
             if (selectedPiece.x == row && selectedPiece.y == col) {
                 selectedPiece = null;
                 possibleMove = null;
@@ -744,14 +744,14 @@ public class ChessClient extends JFrame {
                 return;
             }
             
-            // 检查目标位置是否有己方棋子
+            // Check if there is a friendly piece at the target location
             var targetPiece = board[row][col];
             if (!targetPiece.equals("  ")) {
-                var targetIsRed = "车马相仕帅砲兵".contains(targetPiece);
-                var selectedIsRed = "车马相仕帅砲兵".contains(board[selectedPiece.x][selectedPiece.y]);
+                var targetIsRed = "车马相仕帅砲兵".contains(targetPiece); // Chariot, Horse, Elephant, Advisor, General, Cannon, Pawn
+                var selectedIsRed = "车马相仕帅砲兵".contains(board[selectedPiece.x][selectedPiece.y]); // Chariot, Horse, Elephant, Advisor, General, Cannon, Pawn
                 
                 if (targetIsRed == selectedIsRed) {
-                    // 点击了己方另一个棋子，切换选择
+                    // Clicked on another friendly piece, switch selection
                     selectedPiece = new Point(row, col);
                     soundManager.playSelectSound();
                     boardPanel.repaint();
@@ -759,9 +759,9 @@ public class ChessClient extends JFrame {
                 }
             }
             
-            // 执行移动
+            // Execute move
             out.println("MOVE:" + selectedPiece.x + "," + selectedPiece.y + "," + row + "," + col);
-            soundManager.playMoveSound(!targetPiece.equals("  ")); // 如果有目标棋子，播放吃子音效
+            soundManager.playMoveSound(!targetPiece.equals("  ")); // If there is a target piece, play the capture sound
             selectedPiece = null;
             possibleMove = null;
             boardPanel.repaint();
@@ -769,7 +769,7 @@ public class ChessClient extends JFrame {
     }
     
     private void handleMouseMove(MouseEvent e) {
-        // 获取当前棋盘面板的尺寸
+        // Get the size of the current chessboard panel
         var panel = (ChessBoardPanel) e.getSource();
         var displayRow = (e.getY() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
         var displayCol = (e.getX() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
@@ -790,7 +790,7 @@ public class ChessClient extends JFrame {
     }
     
     private void connectToServer() {
-        var host = JOptionPane.showInputDialog(this, "请输入服务器地址:", "localhost");
+        var host = JOptionPane.showInputDialog(this, "Please enter the server address:", "localhost");
         if (host == null || host.trim().isEmpty()) {
             host = "localhost";
         }
@@ -800,7 +800,7 @@ public class ChessClient extends JFrame {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
-            // 发送登录信息到服务器
+            // Send login information to the server
             out.println("LOGIN:" + playerName);
             
             new Thread(() -> {
@@ -811,16 +811,16 @@ public class ChessClient extends JFrame {
                     }
                 } catch (IOException e) {
                     SwingUtilities.invokeLater(() -> 
-                        appendChat("系统", "与服务器断开连接")
+                        appendChat("System", "Disconnected from server")
                     );
                 }
             }).start();
             
-            // 连接成功后立即请求棋盘状态
+            // Immediately request board state after successful connection
             out.println("GET_BOARD");
             
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "无法连接到服务器!");
+            JOptionPane.showMessageDialog(this, "Unable to connect to the server!");
             if (database != null) {
                 database.closeConnection();
             }
@@ -831,10 +831,10 @@ public class ChessClient extends JFrame {
     private void handleServerMessage(String message) {
         if (message.startsWith("COLOR:")) {
             playerColor = message.substring(6);
-            // 黑方需要旋转棋盘视角
+            // Black needs to rotate the board perspective
             shouldRotateBoard = playerColor.equals("黑");
             SwingUtilities.invokeLater(() -> {
-                statusLabel.setText("你是" + playerColor + "方 | 当前回合: " + currentPlayer);
+                statusLabel.setText("You are " + playerColor + " | Current turn: " + currentPlayer);
                 updateGameInfo();
                 boardPanel.repaint();
             });
@@ -844,18 +844,18 @@ public class ChessClient extends JFrame {
             var chatMsg = message.substring(5);
             appendChat("", chatMsg);
             
-            // 检查是否是游戏结束消息
+            // Check if it is a game over message
             if (chatMsg.contains("获胜") || chatMsg.contains("吃掉了")) {
                 soundManager.playWinSound();
-                // 显示游戏结束对话框
+                // Show game over dialog
                 SwingUtilities.invokeLater(() -> {
-                    JOptionPane.showMessageDialog(this, chatMsg, "游戏结束", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, chatMsg, "Game Over", JOptionPane.INFORMATION_MESSAGE);
                     resetGame();
                 });
             } else if (chatMsg.contains("新游戏开始")) {
                 resetGame();
             } else if (chatMsg.contains("被将军")) {
-                // 将军提示音效
+                // Check notification sound
                 soundManager.playTone(1000, 150);
             }
         } else if (message.startsWith("TIME:")) {
@@ -886,13 +886,13 @@ public class ChessClient extends JFrame {
         
         SwingUtilities.invokeLater(() -> {
             boardPanel.repaint();
-            statusLabel.setText("你是" + playerColor + "方 | 当前回合: " + currentPlayer);
+            statusLabel.setText("You are " + playerColor + " | Current turn: " + currentPlayer);
             updateGameInfo();
         });
     }
     
     private void updateGameInfo() {
-        // 更新游戏信息面板
+        // Update game info panel
         for (Component comp : getContentPane().getComponents()) {
             if (comp instanceof JPanel) {
                 updateGameInfoInPanel((JPanel) comp);
@@ -907,9 +907,9 @@ public class ChessClient extends JFrame {
             } else if (comp instanceof JLabel && comp.getName() != null) {
                 var label = (JLabel) comp;
                 if (label.getName().equals("playerLabel")) {
-                    label.setText("你的颜色: " + playerColor);
+                    label.setText("Your color: " + playerColor);
                 } else if (label.getName().equals("turnLabel")) {
-                    label.setText("当前回合: " + currentPlayer);
+                    label.setText("Current turn: " + currentPlayer);
                 }
             }
         }
@@ -931,9 +931,9 @@ public class ChessClient extends JFrame {
     }
     
     private void updateTimeDisplay() {
-        var timeString = "游戏时间: " + currentTime;
+        var timeString = "Game time: " + currentTime;
         
-        // 更新时间显示
+        // Update time display
         for (var comp : getContentPane().getComponents()) {
             if (comp instanceof JPanel) {
                 updateTimeInPanel((JPanel) comp, timeString);
@@ -947,7 +947,7 @@ public class ChessClient extends JFrame {
                 updateTimeInPanel((JPanel) comp, timeString);
             } else if (comp instanceof JLabel) {
                 var label = (JLabel) comp;
-                if (label.getText().startsWith("游戏时间:")) {
+                if (label.getText().startsWith("Game time:")) {
                     label.setText(timeString);
                 }
             }
@@ -962,12 +962,12 @@ public class ChessClient extends JFrame {
         boardPanel.repaint();
     }
     
-    // 音效管理器类
+    // SoundManager class
     class SoundManager {
         private boolean soundEnabled = true;
         
         public SoundManager() {
-            // 检查系统是否支持音效
+            // Check if the system supports sound effects
             try {
                 AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(
                     new ByteArrayInputStream(new byte[0]));
@@ -979,19 +979,19 @@ public class ChessClient extends JFrame {
         
         public void playSelectSound() {
             if (!soundEnabled) return;
-            // 播放选择音效
+            // Play select sound
             playTone(800, 50);
         }
         
         public void playMoveSound(boolean capture) {
             if (!soundEnabled) return;
-            // 播放移动音效，吃子时频率更高
+            // Play move sound, higher frequency for captures
             playTone(capture ? 1200 : 600, 100);
         }
         
         public void playErrorSound() {
             if (!soundEnabled) return;
-            // 播放错误音效
+            // Play error sound
             playTone(300, 200);
         }
         
