@@ -22,7 +22,7 @@ public class LoginDialog extends JDialog {
         setLayout(new BorderLayout(15, 15));
         setResizable(false);
 
-        /* ================= 顶部标题 ================= */
+        /* ================= top title ================= */
         JPanel titlePanel = new JPanel();
         titlePanel.setBackground(new Color(139, 69, 19));
         JLabel titleLabel = new JLabel("中国象棋网络版");
@@ -31,7 +31,7 @@ public class LoginDialog extends JDialog {
         titlePanel.add(titleLabel);
         titlePanel.setPreferredSize(new Dimension(0, 70));
 
-        /* ================= 中间输入区 ================= */
+        /* ================= middle input ================= */
         JPanel inputPanel = new JPanel(new GridBagLayout());
         inputPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
         inputPanel.setBackground(new Color(245, 222, 179));
@@ -40,7 +40,7 @@ public class LoginDialog extends JDialog {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        /* 用户名标签 */
+        /* user label */
         JLabel nameLabel = new JLabel("用户名：");
         nameLabel.setFont(new Font("微软雅黑", Font.BOLD, 18));
         nameLabel.setForeground(Color.BLACK);
@@ -50,7 +50,7 @@ public class LoginDialog extends JDialog {
         gbc.weightx = 0;
         inputPanel.add(nameLabel, gbc);
 
-        /* 用户名输入框 */
+        /* user input */
         nameField = new JTextField();
         nameField.setFont(new Font("微软雅黑", Font.PLAIN, 18));
         nameField.setForeground(Color.WHITE);
@@ -67,7 +67,7 @@ public class LoginDialog extends JDialog {
         gbc.weightx = 1;
         inputPanel.add(nameField, gbc);
 
-        /* 密码标签 */
+        /* key label */
         JLabel passwordLabel = new JLabel("密  码：");
         passwordLabel.setFont(new Font("微软雅黑", Font.BOLD, 18));
         passwordLabel.setForeground(Color.BLACK);
@@ -77,7 +77,7 @@ public class LoginDialog extends JDialog {
         gbc.weightx = 0;
         inputPanel.add(passwordLabel, gbc);
 
-        /* 密码输入框 */
+        /* key input */
         passwordField = new JPasswordField();
         passwordField.setFont(new Font("微软雅黑", Font.PLAIN, 18));
         passwordField.setForeground(Color.WHITE);
@@ -94,7 +94,7 @@ public class LoginDialog extends JDialog {
         gbc.weightx = 1;
         inputPanel.add(passwordField, gbc);
 
-        /* ================= 底部按钮区 ================= */
+        /* ================= top button ================= */
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(new Color(222, 184, 135));
         buttonPanel.setPreferredSize(new Dimension(0, 80));

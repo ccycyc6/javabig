@@ -48,11 +48,11 @@ ChineseChess/
 
 ## 🚀 快速开始
 
-### 方式1：使用脚本启动（推荐）
+### 方式1：使用脚本启动（推荐）(Linux/MacOS)
 
 ```bash
 cd /home/ccy/Documents/javabig/ChineseChess
-bash test.sh
+bash test.sh   or    ./test.sh
 ```
 
 脚本会自动编译、启动服务器和多个客户端实例。
@@ -86,7 +86,7 @@ java -cp "build:lib/*" src.ChessClient
 
 ### 用户流程
 
-1. **启动客户端** → 自动弹出登录对话框
+1. **启动客户端** → 自动弹出登录对话框 (注意：运行test.sh脚本会启动3个客户端窗口,每个窗口可独立登录，分别代表黑方、红方和观战者)
 2. **选择操作**：
    - 注册新账户：输入用户名密码并点击"Register"
    - 已有账户：输入用户名密码并点击"Login"
@@ -148,15 +148,15 @@ CREATE TABLE game_records (
 ```
 ┌─────────────────┐         ┌──────────────────┐
 │  ChessClient    │◄───────►│   ChessServer    │
-│  (Swing GUI)    │ Socket  │ (多线程处理)     │
-│  登录/排行榜    │         │ 游戏逻辑         │
+│  (Swing GUI)    │ Socket  │ (多线程处理)       │
+│  登录/排行榜      │         │ 游戏逻辑          │
 └─────────────────┘         └────────┬─────────┘
                                      │
                                      ▼
                             ┌──────────────────┐
                             │ ChessDatabase    │
                             │ (SQLite JDBC)    │
-                            │ 数据持久化       │
+                            │ 数据持久化         │
                             └──────────────────┘
 ```
 
@@ -175,18 +175,18 @@ CREATE TABLE game_records (
 
 ```
 客户端 → 服务器：
-  LOGIN:playerName              # 玩家登录
+  LOGIN:playerName                  # 玩家登录
   MOVE:fromRow,fromCol,toRow,toCol  # 移动棋子
-  CHAT:message                  # 发送聊天消息
-  GET_BOARD                     # 请求棋盘状态
+  CHAT:message                      # 发送聊天消息
+  GET_BOARD                         # 请求棋盘状态
 
 服务器 → 客户端：
-  COLOR:red/black/观战          # 分配玩家颜色
-  BOARD:棋盘数据,当前玩家      # 棋盘状态
-  TIME:MM:SS                    # 对局计时
-  CHAT:message                  # 广播消息
-  LOGIN_OK/LOGIN_FAILED         # 登录响应
-  ERROR:错误信息                # 错误提示
+  COLOR:red/black/观战               # 分配玩家颜色
+  BOARD:棋盘数据,当前玩家              # 棋盘状态
+  TIME:MM:SS                        # 对局计时
+  CHAT:message                      # 广播消息
+  LOGIN_OK/LOGIN_FAILED             # 登录响应
+  ERROR:错误信息                     # 错误提示
 ```
 
 ## 📊 排行榜特性
@@ -219,8 +219,7 @@ CREATE TABLE game_records (
 │  ├─ 排名2: Bob   - 胜: 42  负: 15  胜率: 73.7%
 │  └─ 排名3: Charlie - 胜: 38  负: 18  胜率: 67.9%
 └─ 个人战绩（最近10场）
-   ├─ 红: Alice   黑: Bob     赢家: Alice  用时: 342秒  时间: 14:30
-   ├─ 红: Bob     黑: Charlie 赢家: Charlie 用时: 521秒  时间: 15:20
+   ├─ 对局时间: Alice   我的角色: Bob     对局结果: Alice  对手: 342秒  对局时长: 14:30
    └─ ...
 ```
 
@@ -320,24 +319,15 @@ CREATE TABLE game_records (
 ### Q: 数据库能升级吗？
 **A**: 可以，ChessDatabase 类使用标准 JDBC，可轻松升级到 MySQL 或 PostgreSQL。
 
-##  详细文档
-
-- **README.md** - 本文档，项目说明和功能介绍
-
-## 📄 许可证
-
-本项目仅供学习和交流使用。
 
 ---
 
 **项目完成时间**: 2024年12月22日  
 **技术栈**: Java 8+ | Swing | SQLite | Socket | JDBC  
-**代码质量**: ⭐⭐⭐⭐⭐
-
 ## 开发约定
 
 *   **代码风格**: 代码遵循标准的Java编码规范。
 *   **图形界面**: 图形界面使用Java Swing构建，UI组件结构清晰，用户体验良好。
 *   **网络通信**: 客户端和服务器通过TCP/IP套接字使用简单的基于文本的协议进行通信。协议由一组命令（如 `LOGIN`, `MOVE`, `CHAT`等）定义。
 *   **数据库**: 应用程序使用SQLite数据库来持久化数据。`ChessDatabase` 类封装了所有数据库操作，并使用 `PreparedStatement` 来防止SQL注入。
-*   **测试**: `test.sh` 脚本提供了一个基本的集成测试，通过启动一个服务器和多个客户端来完成。
+*   **测试**: `test.sh` 脚本提供了一个基本的集成测试，通过启动一个服务器和三个客户端来完成。

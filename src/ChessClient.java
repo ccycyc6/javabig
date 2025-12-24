@@ -6,7 +6,7 @@ import java.awt.geom.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import javax.sound.sampled.*;
+//import javax.sound.sampled.*;
 
 public class ChessClient extends JFrame {
     private static final int CELL_SIZE = 85;
@@ -31,7 +31,7 @@ public class ChessClient extends JFrame {
     private Point possibleMove = null;
     
     // Sound and animation
-    private SoundManager soundManager;
+    //private SoundManager soundManager;
     private Map<String, Point> piecePositions = new HashMap<>();
     private boolean isAnimating = false;
     
@@ -86,7 +86,7 @@ public class ChessClient extends JFrame {
         }
         
         initBoard();
-        soundManager = new SoundManager();
+        //soundManager = new SoundManager();
         createTitlePanel();
         createMainPanel();
         createStatusPanel();
@@ -731,7 +731,7 @@ System.out.println("Leaderboard window is displayed");
                 if ((playerColor.equals("红") && isRed) || 
                     (playerColor.equals("黑") && !isRed)) {
                     selectedPiece = new Point(row, col);
-                    soundManager.playSelectSound();
+                    //soundManager.playSelectSound();
                     boardPanel.repaint();
                 }
             }
@@ -753,7 +753,7 @@ System.out.println("Leaderboard window is displayed");
                 if (targetIsRed == selectedIsRed) {
                     // Clicked on another friendly piece, switch selection
                     selectedPiece = new Point(row, col);
-                    soundManager.playSelectSound();
+                    //soundManager.playSelectSound();
                     boardPanel.repaint();
                     return;
                 }
@@ -761,7 +761,7 @@ System.out.println("Leaderboard window is displayed");
             
             // Execute move
             out.println("MOVE:" + selectedPiece.x + "," + selectedPiece.y + "," + row + "," + col);
-            soundManager.playMoveSound(!targetPiece.equals("  ")); // If there is a target piece, play the capture sound
+            //soundManager.playMoveSound(!targetPiece.equals("  ")); // If there is a target piece, play the capture sound
             selectedPiece = null;
             possibleMove = null;
             boardPanel.repaint();
@@ -846,7 +846,7 @@ System.out.println("Leaderboard window is displayed");
             
             // Check if it is a game over message
             if (chatMsg.contains("获胜") || chatMsg.contains("吃掉了")) {
-                soundManager.playWinSound();
+                //soundManager.playWinSound();
                 // Show game over dialog
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this, chatMsg, "Game Over", JOptionPane.INFORMATION_MESSAGE);
@@ -856,7 +856,7 @@ System.out.println("Leaderboard window is displayed");
                 resetGame();
             } else if (chatMsg.contains("被将军")) {
                 // Check notification sound
-                soundManager.playTone(1000, 150);
+                //soundManager.playTone(1000, 150);
             }
         } else if (message.startsWith("TIME:")) {
             currentTime = message.substring(5);
@@ -865,7 +865,7 @@ System.out.println("Leaderboard window is displayed");
             var error = message.substring(6);
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(this, error);
-                soundManager.playErrorSound();
+                //soundManager.playErrorSound();
             });
         }
     }
@@ -961,7 +961,9 @@ System.out.println("Leaderboard window is displayed");
         updateTimeDisplay();
         boardPanel.repaint();
     }
-    
+
+
+ /*   
     // SoundManager class
     class SoundManager {
         private boolean soundEnabled = true;
@@ -995,6 +997,8 @@ System.out.println("Leaderboard window is displayed");
             playTone(300, 200);
         }
         
+
+        // Play win sound
         public void playWinSound() {
             if (!soundEnabled) return;
             // 播放胜利音效
@@ -1031,7 +1035,7 @@ System.out.println("Leaderboard window is displayed");
                 }
             }).start();
         }
-    }
+    }*/
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new ChessClient());

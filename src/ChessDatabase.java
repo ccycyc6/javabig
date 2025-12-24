@@ -175,7 +175,7 @@ public class ChessDatabase {
                 record.setWinnerName(rs.getString("winner_name"));
                 record.setGameDurationSeconds(rs.getLong("game_duration"));
                 
-                // 改进时间字段处理
+                // Parse timestamps with error handling
                 var startTimeStr = rs.getString("start_time");
                 var endTimeStr = rs.getString("end_time");
                 
