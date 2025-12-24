@@ -322,7 +322,7 @@ CREATE TABLE game_records (
 
 ---
 
-**项目完成时间**: 2024年12月22日  
+**项目完成时间**: 2024年12月22日
 **技术栈**: Java 8+ | Swing | SQLite | Socket | JDBC  
 ## 开发约定
 

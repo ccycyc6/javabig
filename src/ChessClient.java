@@ -1001,7 +1001,6 @@ System.out.println("Leaderboard window is displayed");
         // Play win sound
         public void playWinSound() {
             if (!soundEnabled) return;
-            // 播放胜利音效
             new Thread(() -> {
                 playTone(523, 200); // C
                 try { Thread.sleep(200); } catch (InterruptedException e) {}
@@ -1031,7 +1030,6 @@ System.out.println("Leaderboard window is displayed");
                     line.drain();
                     line.close();
                 } catch (Exception e) {
-                    // 音效播放失败，静默处理
                 }
             }).start();
         }

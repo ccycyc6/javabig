@@ -310,6 +310,9 @@ public class ChessServer {
                 
                 return false;
             }        
+
+
+/*==================================   rules ===================================== start ==================================================*/
         private boolean isValidMove(int fromRow, int fromCol, int toRow, int toCol) {
             if (fromRow < 0 || fromRow >= 10 || fromCol < 0 || fromCol >= 9) return false;
             if (toRow < 0 || toRow >= 10 || toCol < 0 || toCol >= 9) return false;
@@ -482,7 +485,7 @@ public class ChessServer {
             if (isRed) {
                 //red pawn moves up
                 if (fromRow > 4) {
-                    // 未过河，只能向前
+                    // not crossed river, can only move forward
                     return rowDiff == -1 && colDiff == 0;
                 } else {
                     //can move forward or sideways after crossing river
@@ -501,7 +504,7 @@ public class ChessServer {
                 }
             }
         }
-        
+/*==================================   rules ===================================== end ==================================================*/
         private void sendBoardToAll() {
             StringBuilder sb = new StringBuilder("BOARD:");
             for (int i = 0; i < 10; i++) {

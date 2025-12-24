@@ -9,7 +9,7 @@ import javax.swing.border.Border;
 
 public class LeaderboardPanel extends JPanel {
 
-    /* ==================== 统一配色（稳定不炸） ==================== */
+    /* ==================== general color ==================== */
 
     private static final Color BG_PANEL   = new Color(248, 248, 248);
     private static final Color BG_TABLE   = Color.WHITE;
@@ -21,7 +21,7 @@ public class LeaderboardPanel extends JPanel {
 
     private static final Color BTN_BG     = new Color(139, 69, 19);
 
-    /* ==================== 成员 ==================== */
+    /* ==================== members ==================== */
 
     private JTable leaderboardTable;
     private JTable gameHistoryTable;
@@ -29,7 +29,7 @@ public class LeaderboardPanel extends JPanel {
     private ChessDatabase database;
     private int currentPlayerId = -1;
 
-    /* ==================== 构造 ==================== */
+    /* ==================== construct ==================== */
 
     public LeaderboardPanel(ChessDatabase database) {
         this.database = database;
@@ -41,11 +41,11 @@ public class LeaderboardPanel extends JPanel {
         createLeaderboardPanel();
         createGameHistoryPanel();
 
-        // UI 创建完成后立刻加载排行榜（不用点）
+        // initial load data after UI is ready
         SwingUtilities.invokeLater(this::loadLeaderboardAsync);
     }
 
-    /* ==================== UI 构建 ==================== */
+    /* ==================== UI create ==================== */
 
     private void createLeaderboardPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -114,7 +114,7 @@ public class LeaderboardPanel extends JPanel {
         return b;
     }
 
-    /* ==================== 表格（关键修复） ==================== */
+    /* ==================== table ==================== */
 
     private JTable createTable(String[] columns) {
 
@@ -172,7 +172,7 @@ public class LeaderboardPanel extends JPanel {
         return table;
     }
 
-    /* ==================== 数据加载 ==================== */
+    /* ==================== data load ==================== */
 
     private void loadLeaderboardAsync() {
         new SwingWorker<List<PlayerInfo>, Void>() {
@@ -209,7 +209,7 @@ public class LeaderboardPanel extends JPanel {
         }.execute();
     }
 
-    /* ==================== UI 更新 ==================== */
+    /* ==================== UI update ==================== */
 
     private void updateLeaderboard(List<PlayerInfo> list) {
         DefaultTableModel m =
@@ -312,7 +312,7 @@ public class LeaderboardPanel extends JPanel {
         m.addRow(new Object[]{msg, null, null, null, null});
     }
 
-    /* ==================== 对外接口 ==================== */
+    /* ==================== interface out ==================== */
 
     public void setCurrentPlayer(int id, String name) {
         this.currentPlayerId = id;
