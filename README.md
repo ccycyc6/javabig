@@ -30,8 +30,7 @@ ChineseChess/
 │   ├── GameRecord.java           # 对局记录模型类
 │   ├── ChessDatabase.java        # 数据库管理类（SQLite）
 │   ├── LoginDialog.java          # 登录注册对话框
-│   ├── LeaderboardPanel.java     # 排行榜和战绩面板
-│   └── SoundManager.java         # 音效管理（原有）
+│   └── LeaderboardPanel.java     # 排行榜和战绩面板
 ├── lib/
 │   └── sqlite-jdbc-3.40.0.0.jar  # SQLite JDBC驱动
 ├── build/                         # 编译输出目录
