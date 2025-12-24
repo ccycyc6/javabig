@@ -260,9 +260,6 @@ public class ChessServer {
                 }
                 
                 // check for check
-                if (isInCheck(currentPlayer.equals("红") ? "黑" : "红")) {
-                    broadcastMessage("系统", currentPlayer + "方被将军!");
-                }
                 
                 currentPlayer = currentPlayer.equals("红") ? "黑" : "红";
                 sendBoardToAll();

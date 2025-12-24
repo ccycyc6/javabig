@@ -829,16 +829,45 @@ System.out.println("Leaderboard window is displayed");
     }
     
     private void handleServerMessage(String message) {
-        if (message.startsWith("COLOR:")) {
+    if (message.startsWith("COLOR:")) {
             playerColor = message.substring(6);
-            // Black needs to rotate the board perspective
+            
+            // 黑方需要旋转棋盘视角
             shouldRotateBoard = playerColor.equals("黑");
+            
             SwingUtilities.invokeLater(() -> {
-                statusLabel.setText("You are " + playerColor + " | Current turn: " + currentPlayer);
+                // 1. 修改窗口顶部的标题栏 (Window Title)
+                setTitle("中国象棋在线 - 当前玩家: " + playerName + " 【" + playerColor + "方】");
+
+                // 2. 修改界面正上方的大标题 (Title Label)
+                titleLabel.setText("中国象棋 - " + playerColor + "方");
+                
+                // 根据阵营改变大标题颜色
+                if (playerColor.equals("红")) {
+                    titleLabel.setForeground(Color.RED);
+                } else if (playerColor.equals("黑")) {
+                    titleLabel.setForeground(Color.BLACK);
+                } else {
+                    titleLabel.setForeground(Color.GRAY); // 观战显示灰色
+                }
+
+                // 3. 更新底部的状态栏
+                statusLabel.setText("您的身份: " + playerColor + "方 | 当前回合: " + currentPlayer);
+                
+                // 4. 【新增】弹出一个提示框，醒目地告诉玩家
+                String roleMsg = "您已成功加入游戏！\n\n当前身份：【" + playerColor + "方】";
+                if (playerColor.equals("观战")) {
+                    roleMsg += "\n由于房间已满，您目前处于观战模式。";
+                } else {
+                    roleMsg += "\n请准备开始对弈！";
+                }
+                JOptionPane.showMessageDialog(this, roleMsg, "身份确认", JOptionPane.INFORMATION_MESSAGE);
+
                 updateGameInfo();
                 boardPanel.repaint();
             });
-        } else if (message.startsWith("BOARD:")) {
+        }
+        else if (message.startsWith("BOARD:")) {
             updateBoard(message.substring(6));
         } else if (message.startsWith("CHAT:")) {
             var chatMsg = message.substring(5);
