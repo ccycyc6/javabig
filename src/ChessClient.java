@@ -2,11 +2,9 @@ package src;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-//import javax.sound.sampled.*;
 
 public class ChessClient extends JFrame {
     private static final int CELL_SIZE = 85;
@@ -29,9 +27,12 @@ public class ChessClient extends JFrame {
     private String currentPlayer = "红";
     private Point selectedPiece = null;
     private Point possibleMove = null;
+
+    // === 新增语音管理器和按钮 ===
+    private VoiceManager voiceManager;
+    private JButton voiceButton;
     
     // Sound and animation
-    //private SoundManager soundManager;
     private Map<String, Point> piecePositions = new HashMap<>();
     private boolean isAnimating = false;
     
@@ -73,7 +74,6 @@ public class ChessClient extends JFrame {
         playerName = loginDialog.getLoginResult();
         
         if (playerName == null || playerName.isEmpty()) {
-            // User cancelled login
             System.exit(0);
             return;
         }
@@ -86,7 +86,10 @@ public class ChessClient extends JFrame {
         }
         
         initBoard();
-        //soundManager = new SoundManager();
+        
+        // === 初始化语音管理器 ===
+        voiceManager = new VoiceManager();
+        
         createTitlePanel();
         createMainPanel();
         createStatusPanel();
@@ -132,12 +135,11 @@ public class ChessClient extends JFrame {
             BOARD_WIDTH * CELL_SIZE + BOARD_MARGIN * 2, 
             BOARD_HEIGHT * CELL_SIZE + BOARD_MARGIN * 2
         ));
-        boardPanel.setMinimumSize(new Dimension(400, 400)); // Set minimum size
+        boardPanel.setMinimumSize(new Dimension(400, 400));
         
-        // Chessboard panel layout settings - occupy main space
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 1.0; // Chessboard occupies remaining space
+        gbc.weightx = 1.0;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -146,9 +148,8 @@ public class ChessClient extends JFrame {
         // Create right panel
         var rightPanel = createRightPanel();
         
-        // Right panel layout settings - fixed width
         gbc.gridx = 1;
-        gbc.weightx = 0.0; // Right panel does not expand, maintains fixed width
+        gbc.weightx = 0.0;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTH;
@@ -157,36 +158,29 @@ public class ChessClient extends JFrame {
         
         add(mainPanel, BorderLayout.CENTER);
         
-        // Add component listener to implement adaptive window size changes
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
                 adjustLayout();
             }
-            
             @Override
             public void componentShown(ComponentEvent e) {
                 adjustLayout();
             }
         });
         
-        // Add window state listener
         addWindowStateListener(new WindowAdapter() {
             @Override
             public void windowStateChanged(WindowEvent e) {
-                // Readjust layout when window state changes
                 SwingUtilities.invokeLater(() -> adjustLayout());
             }
         });
     }
     
     private void adjustLayout() {
-        // Force recalculation of chessboard size
         if (boardPanel != null) {
             boardPanel.calculateOptimalSize();
         }
-        
-        // Ensure layout update
         revalidate();
         repaint();
     }
@@ -194,13 +188,10 @@ public class ChessClient extends JFrame {
     private JPanel createRightPanel() {
         var rightPanel = new JPanel(new BorderLayout(10, 10));
         rightPanel.setBackground(new Color(245, 222, 179));
-        rightPanel.setPreferredSize(new Dimension(650, 0)); // Set preferred width to 650px
-        rightPanel.setMinimumSize(new Dimension(300, 0)); // Minimum width 300px
+        rightPanel.setPreferredSize(new Dimension(650, 0));
+        rightPanel.setMinimumSize(new Dimension(300, 0));
         
-        // Game information panel
         var infoPanel = createGameInfoPanel();
-        
-        // Chat panel
         var chatPanel = createChatPanel();
         
         rightPanel.add(infoPanel, BorderLayout.NORTH);
@@ -220,8 +211,8 @@ public class ChessClient extends JFrame {
             new Font("宋体", Font.BOLD, 14),
             new Color(139, 69, 19)
         ));
-        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90)); // Reduce height
-        infoPanel.setPreferredSize(new Dimension(0, 90)); // Set preferred height
+        infoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        infoPanel.setPreferredSize(new Dimension(0, 90));
         
         var playerLabel = new JLabel("Waiting for assignment...", JLabel.CENTER);
         playerLabel.setFont(new Font("宋体", Font.PLAIN, 14));
@@ -285,6 +276,37 @@ public class ChessClient extends JFrame {
         ));
         chatInput.addActionListener(e -> sendChatMessage());
         
+        // === 配置语音按钮 ===
+        voiceButton = new JButton("按住说话");
+        voiceButton.setFont(new Font("微软雅黑", Font.BOLD, 12));
+        voiceButton.setBackground(new Color(34, 139, 34)); // 绿色
+        voiceButton.setForeground(Color.WHITE);
+        voiceButton.setPreferredSize(new Dimension(90, 35));
+        voiceButton.setEnabled(false); // 初始禁用，登录后判断角色开启
+        
+        // 添加鼠标监听实现“按住说话”
+        voiceButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (voiceButton.isEnabled()) {
+                    voiceButton.setText("正在录音...");
+                    voiceButton.setBackground(Color.RED);
+                    // 开始录音，数据通过 out.println 发送
+                    voiceManager.startRecording(msg -> {
+                        if(out != null) out.println(msg);
+                    });
+                }
+            }
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (voiceButton.isEnabled()) {
+                    voiceButton.setText("按住说话");
+                    voiceButton.setBackground(new Color(34, 139, 34));
+                    voiceManager.stopRecording();
+                }
+            }
+        });
+
         var sendButton = new JButton("Send");
         sendButton.setFont(new Font("微软雅黑", Font.BOLD, 12));
         sendButton.setBackground(new Color(139, 69, 19));
@@ -294,8 +316,14 @@ public class ChessClient extends JFrame {
         sendButton.setBorder(BorderFactory.createRaisedBevelBorder());
         sendButton.addActionListener(e -> sendChatMessage());
         
+        // 使用一个Panel包裹两个按钮
+        var btnPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+        btnPanel.setBackground(new Color(245, 222, 179));
+        btnPanel.add(voiceButton);
+        btnPanel.add(sendButton);
+        
         inputPanel.add(chatInput, BorderLayout.CENTER);
-        inputPanel.add(sendButton, BorderLayout.EAST);
+        inputPanel.add(btnPanel, BorderLayout.EAST); // 将按钮组放在右侧
         
         chatPanel.add(scrollPane, BorderLayout.CENTER);
         chatPanel.add(inputPanel, BorderLayout.SOUTH);
@@ -355,28 +383,14 @@ public class ChessClient extends JFrame {
         leaderboardFrame.setSize(800, 600);
         leaderboardFrame.setLocationRelativeTo(this);
         
-        // Refactor: create panel first, set player info, then show window
         var panel = new LeaderboardPanel(database);
         
-        // Ensure player info is set before showing window
         if (playerId > 0) {
-            System.out.println("Setting leaderboard player info: " + playerName + " (ID: " + playerId + ")");
             panel.setCurrentPlayer(playerId, playerName);
-        } else {
-            System.out.println("Unauthenticated user views leaderboard");
         }
         
         leaderboardFrame.add(panel);
-        
-        // Add window listener to ensure data is loaded after the window is fully displayed
-        leaderboardFrame.addWindowStateListener(e -> {
-            if (e.getNewState() == Frame.NORMAL) {
-System.out.println("Leaderboard window is displayed");
-            }
-        });
-        
         leaderboardFrame.setVisible(true);
-        System.out.println("Leaderboard window opened");
     }
     
     private class ChessBoardPanel extends JPanel {
@@ -406,7 +420,6 @@ System.out.println("Leaderboard window is displayed");
                 }
             });
             
-            // Add component listener to adjust size
             addComponentListener(new ComponentAdapter() {
                 @Override
                 public void componentResized(ComponentEvent e) {
@@ -419,35 +432,27 @@ System.out.println("Leaderboard window is displayed");
             var panelWidth = getWidth();
             var panelHeight = getHeight();
             
-// Ensure panel has valid dimensions
             if (panelWidth <= 0 || panelHeight <= 0) return;
             
-            // Calculate available drawing area (reserve sufficient margin)
-            var availableWidth = panelWidth - 60; // Left and right margin
-            var availableHeight = panelHeight - 60; // Top and bottom margin
+            var availableWidth = panelWidth - 60;
+            var availableHeight = panelHeight - 60;
             
-            // Ensure available area is positive
             availableWidth = Math.max(availableWidth, 400);
             availableHeight = Math.max(availableHeight, 400);
             
-            // Calculate optimal cell size (take the smaller value to ensure complete display)
             var maxCellWidth = availableWidth / BOARD_WIDTH;
             var maxCellHeight = availableHeight / BOARD_HEIGHT;
             
-            // Choose the smaller size to ensure the board is fully visible
             currentCellSize = Math.min(maxCellWidth, maxCellHeight);
+            currentCellSize = Math.max(currentCellSize, 30);
+            currentCellSize = Math.min(currentCellSize, 100);
             
-            // Set a reasonable size range
-            currentCellSize = Math.max(currentCellSize, 30); // Minimum 30 pixels to ensure readability
-            currentCellSize = Math.min(currentCellSize, 100); // Maximum 100 pixels to prevent it from being too large
-            
-            // Calculate centered margin
             var boardWidth = currentCellSize * BOARD_WIDTH;
             var boardHeight = currentCellSize * BOARD_HEIGHT;
             
             currentBoardMargin = Math.max((panelWidth - boardWidth) / 2, 20);
             currentBoardMargin = Math.max(currentBoardMargin, (panelHeight - boardHeight) / 2);
-            currentBoardMargin = Math.min(currentBoardMargin, 50); // Limit maximum margin
+            currentBoardMargin = Math.min(currentBoardMargin, 50);
             
             repaint();
         }
@@ -457,7 +462,6 @@ System.out.println("Leaderboard window is displayed");
             super.paintComponent(g);
             var g2d = (Graphics2D) g.create();
             
-            // Enable anti-aliasing
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             
@@ -469,40 +473,32 @@ System.out.println("Leaderboard window is displayed");
         }
         
         private void drawBoard(Graphics2D g2d) {
-            // Draw chessboard background
             g2d.setColor(new Color(245, 222, 179));
             g2d.fillRect(0, 0, getWidth(), getHeight());
             
-            // Ensure the drawing area is within the panel
             var boardRight = currentBoardMargin + (BOARD_WIDTH - 1) * currentCellSize;
             var boardBottom = currentBoardMargin + (BOARD_HEIGHT - 1) * currentCellSize;
             
-            // If the board exceeds the panel range, adjust the margin
             if (boardRight > getWidth() || boardBottom > getHeight()) {
-                calculateOptimalSize(); // Recalculate size
+                calculateOptimalSize();
                 return;
             }
             
-            // Draw board lines
             g2d.setColor(new Color(139, 69, 19));
             g2d.setStroke(new BasicStroke(Math.max(2, currentCellSize / 30)));
             
-            // Horizontal lines
             for (var i = 0; i < BOARD_HEIGHT; i++) {
                 var y = currentBoardMargin + i * currentCellSize;
                 g2d.drawLine(currentBoardMargin, y, 
                            currentBoardMargin + (BOARD_WIDTH - 1) * currentCellSize, y);
             }
             
-            // Vertical lines
             for (var i = 0; i < BOARD_WIDTH; i++) {
                 var x = currentBoardMargin + i * currentCellSize;
                 if (i == 0 || i == BOARD_WIDTH - 1) {
-                    // Draw full border lines
                     g2d.drawLine(x, currentBoardMargin, 
                                x, currentBoardMargin + (BOARD_HEIGHT - 1) * currentCellSize);
                 } else {
-                    // The middle line is broken at the river
                     g2d.drawLine(x, currentBoardMargin, 
                                x, currentBoardMargin + 4 * currentCellSize);
                     g2d.drawLine(x, currentBoardMargin + 5 * currentCellSize, 
@@ -510,7 +506,6 @@ System.out.println("Leaderboard window is displayed");
                 }
             }
             
-            // Draw the palace diagonal lines
             g2d.setStroke(new BasicStroke(Math.max(2, currentCellSize / 30)));
             // Upper palace
             g2d.drawLine(currentBoardMargin + 3 * currentCellSize, currentBoardMargin,
@@ -524,7 +519,6 @@ System.out.println("Leaderboard window is displayed");
             g2d.drawLine(currentBoardMargin + 5 * currentCellSize, currentBoardMargin + 7 * currentCellSize,
                         currentBoardMargin + 3 * currentCellSize, currentBoardMargin + 9 * currentCellSize);
             
-            // Draw the river
             g2d.setColor(new Color(160, 82, 45));
             var fontSize = Math.max(16, currentCellSize / 3);
             g2d.setFont(new Font("楷体", Font.BOLD, fontSize));
@@ -533,9 +527,7 @@ System.out.println("Leaderboard window is displayed");
             var textWidth = fm.stringWidth("楚河");
             var textHeight = fm.getHeight();
             
-            // Determine text position and content based on view rotation
             if (shouldRotateBoard) {
-                // Black's perspective, text needs to be rotated 180 degrees
                 g2d.drawString("汉界", 
                              currentBoardMargin + currentCellSize * 2 - textWidth / 2,
                              currentBoardMargin + currentCellSize * 5 + textHeight / 2);
@@ -545,7 +537,6 @@ System.out.println("Leaderboard window is displayed");
                              currentBoardMargin + currentCellSize * 6 - textWidth / 2,
                              currentBoardMargin + currentCellSize * 5 + textHeight / 2);
             } else {
-                // Red's perspective, normal display
                 g2d.drawString("楚河", 
                              currentBoardMargin + currentCellSize * 2 - textWidth / 2,
                              currentBoardMargin + currentCellSize * 4 + textHeight / 2);
@@ -556,18 +547,15 @@ System.out.println("Leaderboard window is displayed");
                              currentBoardMargin + currentCellSize * 4 + textHeight / 2);
             }
             
-            // Draw cannon and pawn markers
             g2d.setColor(new Color(139, 69, 19));
             int[] cannonPositions = {1, 7};
             int[] pawnPositions = {0, 2, 4, 6, 8};
             
-            // Draw cannon positions
             for (var col : cannonPositions) {
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 2 * currentCellSize);
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 7 * currentCellSize);
             }
             
-            // Draw pawn positions
             for (var col : pawnPositions) {
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 3 * currentCellSize);
                 drawPositionMark(g2d, currentBoardMargin + col * currentCellSize, currentBoardMargin + 6 * currentCellSize);
@@ -578,19 +566,15 @@ System.out.println("Leaderboard window is displayed");
             var size = Math.max(4, currentCellSize / 15);
             g2d.setStroke(new BasicStroke(Math.max(1, currentCellSize / 60)));
             
-            // Top left
             g2d.drawLine(x - size, y, x - size / 2, y);
             g2d.drawLine(x, y - size, x, y - size / 2);
             
-            // Top right
             g2d.drawLine(x + size / 2, y, x + size, y);
             g2d.drawLine(x, y - size, x, y - size / 2);
             
-            // Bottom left
             g2d.drawLine(x - size, y, x - size / 2, y);
             g2d.drawLine(x, y + size / 2, x, y + size);
             
-            // Bottom right
             g2d.drawLine(x + size / 2, y, x + size, y);
             g2d.drawLine(x, y + size / 2, x, y + size);
         }
@@ -603,13 +587,10 @@ System.out.println("Leaderboard window is displayed");
                 for (var j = 0; j < BOARD_WIDTH; j++) {
                     if (!board[i][j].equals("  ")) {
                         var piece = board[i][j];
-                        
-                        // Convert coordinates for display
                         var displayCoords = convertToDisplayCoordinates(i, j);
                         var x = currentBoardMargin + displayCoords[1] * currentCellSize;
                         var y = currentBoardMargin + displayCoords[0] * currentCellSize;
                         
-                        // Ensure the piece is within the visible area
                         if (x >= 0 && y >= 0 && x < getWidth() && y < getHeight()) {
                             drawPiece(g2d, piece, x, y);
                         }
@@ -619,14 +600,10 @@ System.out.println("Leaderboard window is displayed");
         }
         
         private void drawPiece(Graphics2D g2d, String piece, int x, int y) {
-            // Determine piece color
-            var isRed = "车马相仕帅砲兵".contains(piece); // Chariot, Horse, Elephant, Advisor, General, Cannon, Pawn
-            
-            // Calculate piece size (dynamically adjusted based on cell size)
+            var isRed = "车马相仕帅砲兵".contains(piece);
             var pieceSize = (int) (currentCellSize * 0.7);
             var pieceRadius = pieceSize / 2;
             
-            // Draw piece background
             GradientPaint gradient;
             if (isRed) {
                 gradient = new GradientPaint(x - pieceRadius, y - pieceRadius, new Color(255, 200, 200),
@@ -639,12 +616,10 @@ System.out.println("Leaderboard window is displayed");
             g2d.setPaint(gradient);
             g2d.fillOval(x - pieceRadius, y - pieceRadius, pieceSize, pieceSize);
             
-            // Draw piece border
             g2d.setColor(new Color(139, 69, 19));
             g2d.setStroke(new BasicStroke(Math.max(2, currentCellSize / 30)));
             g2d.drawOval(x - pieceRadius, y - pieceRadius, pieceSize, pieceSize);
             
-            // Draw piece text
             g2d.setColor(isRed ? new Color(200, 0, 0) : Color.WHITE);
             var fontSize = Math.max(16, (int) (currentCellSize * 0.4));
             g2d.setFont(new Font("楷体", Font.BOLD, fontSize));
@@ -657,7 +632,6 @@ System.out.println("Leaderboard window is displayed");
         }
         
         private void drawSelection(Graphics2D g2d) {
-            // Draw selected piece
             if (selectedPiece != null) {
                 var displayCoords = convertToDisplayCoordinates(selectedPiece.x, selectedPiece.y);
                 var x = currentBoardMargin + displayCoords[1] * currentCellSize;
@@ -671,7 +645,6 @@ System.out.println("Leaderboard window is displayed");
                 g2d.drawOval(x - selectionSize/2, y - selectionSize/2, selectionSize, selectionSize);
             }
             
-            // Draw possible move locations
             if (possibleMove != null) {
                 var displayCoords = convertToDisplayCoordinates(possibleMove.x, possibleMove.y);
                 var x = currentBoardMargin + displayCoords[1] * currentCellSize;
@@ -689,11 +662,8 @@ System.out.println("Leaderboard window is displayed");
         if (!shouldRotateBoard) {
             return new int[]{displayRow, displayCol};
         }
-        
-        // Rotate 180 degrees
         var actualRow = BOARD_HEIGHT - 1 - displayRow;
         var actualCol = BOARD_WIDTH - 1 - displayCol;
-        
         return new int[]{actualRow, actualCol};
     }
     
@@ -701,16 +671,12 @@ System.out.println("Leaderboard window is displayed");
         if (!shouldRotateBoard) {
             return new int[]{actualRow, actualCol};
         }
-        
-        // Rotate 180 degrees
         var displayRow = BOARD_HEIGHT - 1 - actualRow;
         var displayCol = BOARD_WIDTH - 1 - actualCol;
-        
         return new int[]{displayRow, displayCol};
     }
     
     private void handleBoardClick(MouseEvent e) {
-        // Get the size of the current chessboard panel
         var panel = (ChessBoardPanel) e.getSource();
         var displayRow = (e.getY() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
         var displayCol = (e.getX() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
@@ -731,12 +697,10 @@ System.out.println("Leaderboard window is displayed");
                 if ((playerColor.equals("红") && isRed) || 
                     (playerColor.equals("黑") && !isRed)) {
                     selectedPiece = new Point(row, col);
-                    //soundManager.playSelectSound();
                     boardPanel.repaint();
                 }
             }
         } else {
-            // Check if the same position is clicked (deselect)
             if (selectedPiece.x == row && selectedPiece.y == col) {
                 selectedPiece = null;
                 possibleMove = null;
@@ -744,24 +708,19 @@ System.out.println("Leaderboard window is displayed");
                 return;
             }
             
-            // Check if there is a friendly piece at the target location
             var targetPiece = board[row][col];
             if (!targetPiece.equals("  ")) {
-                var targetIsRed = "车马相仕帅砲兵".contains(targetPiece); // Chariot, Horse, Elephant, Advisor, General, Cannon, Pawn
-                var selectedIsRed = "车马相仕帅砲兵".contains(board[selectedPiece.x][selectedPiece.y]); // Chariot, Horse, Elephant, Advisor, General, Cannon, Pawn
+                var targetIsRed = "车马相仕帅砲兵".contains(targetPiece);
+                var selectedIsRed = "车马相仕帅砲兵".contains(board[selectedPiece.x][selectedPiece.y]);
                 
                 if (targetIsRed == selectedIsRed) {
-                    // Clicked on another friendly piece, switch selection
                     selectedPiece = new Point(row, col);
-                    //soundManager.playSelectSound();
                     boardPanel.repaint();
                     return;
                 }
             }
             
-            // Execute move
             out.println("MOVE:" + selectedPiece.x + "," + selectedPiece.y + "," + row + "," + col);
-            //soundManager.playMoveSound(!targetPiece.equals("  ")); // If there is a target piece, play the capture sound
             selectedPiece = null;
             possibleMove = null;
             boardPanel.repaint();
@@ -769,7 +728,6 @@ System.out.println("Leaderboard window is displayed");
     }
     
     private void handleMouseMove(MouseEvent e) {
-        // Get the size of the current chessboard panel
         var panel = (ChessBoardPanel) e.getSource();
         var displayRow = (e.getY() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
         var displayCol = (e.getX() - panel.currentBoardMargin + panel.currentCellSize / 2) / panel.currentCellSize;
@@ -800,7 +758,6 @@ System.out.println("Leaderboard window is displayed");
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
-            // Send login information to the server
             out.println("LOGIN:" + playerName);
             
             new Thread(() -> {
@@ -816,7 +773,6 @@ System.out.println("Leaderboard window is displayed");
                 }
             }).start();
             
-            // Immediately request board state after successful connection
             out.println("GET_BOARD");
             
         } catch (IOException e) {
@@ -829,32 +785,33 @@ System.out.println("Leaderboard window is displayed");
     }
     
     private void handleServerMessage(String message) {
-    if (message.startsWith("COLOR:")) {
+        if (message.startsWith("COLOR:")) {
             playerColor = message.substring(6);
-            
-            // 黑方需要旋转棋盘视角
             shouldRotateBoard = playerColor.equals("黑");
             
             SwingUtilities.invokeLater(() -> {
-                // 1. 修改窗口顶部的标题栏 (Window Title)
                 setTitle("中国象棋在线 - 当前玩家: " + playerName + " 【" + playerColor + "方】");
-
-                // 2. 修改界面正上方的大标题 (Title Label)
                 titleLabel.setText("中国象棋 - " + playerColor + "方");
                 
-                // 根据阵营改变大标题颜色
                 if (playerColor.equals("红")) {
                     titleLabel.setForeground(Color.RED);
+                    // === 红方开启语音 ===
+                    voiceButton.setEnabled(true);
+                    voiceButton.setToolTipText("按住此按钮与对手通话");
                 } else if (playerColor.equals("黑")) {
                     titleLabel.setForeground(Color.BLACK);
+                    // === 黑方开启语音 ===
+                    voiceButton.setEnabled(true);
+                    voiceButton.setToolTipText("按住此按钮与对手通话");
                 } else {
-                    titleLabel.setForeground(Color.GRAY); // 观战显示灰色
+                    titleLabel.setForeground(Color.GRAY);
+                    // === 观战方禁用语音 ===
+                    voiceButton.setEnabled(false);
+                    voiceButton.setToolTipText("观战模式无法使用语音");
                 }
 
-                // 3. 更新底部的状态栏
                 statusLabel.setText("您的身份: " + playerColor + "方 | 当前回合: " + currentPlayer);
                 
-                // 4. 【新增】弹出一个提示框，醒目地告诉玩家
                 String roleMsg = "您已成功加入游戏！\n\n当前身份：【" + playerColor + "方】";
                 if (playerColor.equals("观战")) {
                     roleMsg += "\n由于房间已满，您目前处于观战模式。";
@@ -867,25 +824,23 @@ System.out.println("Leaderboard window is displayed");
                 boardPanel.repaint();
             });
         }
+        // === 处理收到的语音消息 ===
+        else if (message.startsWith("VOICE:")) {
+            voiceManager.playAudio(message.substring(6));
+        }
         else if (message.startsWith("BOARD:")) {
             updateBoard(message.substring(6));
         } else if (message.startsWith("CHAT:")) {
             var chatMsg = message.substring(5);
             appendChat("", chatMsg);
             
-            // Check if it is a game over message
             if (chatMsg.contains("获胜") || chatMsg.contains("吃掉了")) {
-                //soundManager.playWinSound();
-                // Show game over dialog
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this, chatMsg, "Game Over", JOptionPane.INFORMATION_MESSAGE);
                     resetGame();
                 });
             } else if (chatMsg.contains("新游戏开始")) {
                 resetGame();
-            } else if (chatMsg.contains("被将军")) {
-                // Check notification sound
-                //soundManager.playTone(1000, 150);
             }
         } else if (message.startsWith("TIME:")) {
             currentTime = message.substring(5);
@@ -894,7 +849,6 @@ System.out.println("Leaderboard window is displayed");
             var error = message.substring(6);
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(this, error);
-                //soundManager.playErrorSound();
             });
         }
     }
@@ -921,7 +875,6 @@ System.out.println("Leaderboard window is displayed");
     }
     
     private void updateGameInfo() {
-        // Update game info panel
         for (Component comp : getContentPane().getComponents()) {
             if (comp instanceof JPanel) {
                 updateGameInfoInPanel((JPanel) comp);
@@ -961,8 +914,6 @@ System.out.println("Leaderboard window is displayed");
     
     private void updateTimeDisplay() {
         var timeString = "Game time: " + currentTime;
-        
-        // Update time display
         for (var comp : getContentPane().getComponents()) {
             if (comp instanceof JPanel) {
                 updateTimeInPanel((JPanel) comp, timeString);
@@ -990,79 +941,6 @@ System.out.println("Leaderboard window is displayed");
         updateTimeDisplay();
         boardPanel.repaint();
     }
-
-
- /*   
-    // SoundManager class
-    class SoundManager {
-        private boolean soundEnabled = true;
-        
-        public SoundManager() {
-            // Check if the system supports sound effects
-            try {
-                AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(
-                    new ByteArrayInputStream(new byte[0]));
-                audioInputStream.close();
-            } catch (Exception e) {
-                soundEnabled = false;
-            }
-        }
-        
-        public void playSelectSound() {
-            if (!soundEnabled) return;
-            // Play select sound
-            playTone(800, 50);
-        }
-        
-        public void playMoveSound(boolean capture) {
-            if (!soundEnabled) return;
-            // Play move sound, higher frequency for captures
-            playTone(capture ? 1200 : 600, 100);
-        }
-        
-        public void playErrorSound() {
-            if (!soundEnabled) return;
-            // Play error sound
-            playTone(300, 200);
-        }
-        
-
-        // Play win sound
-        public void playWinSound() {
-            if (!soundEnabled) return;
-            new Thread(() -> {
-                playTone(523, 200); // C
-                try { Thread.sleep(200); } catch (InterruptedException e) {}
-                playTone(659, 200); // E
-                try { Thread.sleep(200); } catch (InterruptedException e) {}
-                playTone(784, 400); // G
-            }).start();
-        }
-        
-        private void playTone(int frequency, int duration) {
-            if (!soundEnabled) return;
-            
-            new Thread(() -> {
-                try {
-                    var line = AudioSystem.getSourceDataLine(
-                        new AudioFormat(44100, 16, 1, true, false));
-                    line.open();
-                    line.start();
-                    
-                    var buffer = new byte[44100 * duration / 1000];
-                    for (var i = 0; i < buffer.length; i++) {
-                        var angle = 2.0 * Math.PI * frequency * i / 44100.0;
-                        buffer[i] = (byte) (Math.sin(angle) * 127);
-                    }
-                    
-                    line.write(buffer, 0, buffer.length);
-                    line.drain();
-                    line.close();
-                } catch (Exception e) {
-                }
-            }).start();
-        }
-    }*/
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new ChessClient());

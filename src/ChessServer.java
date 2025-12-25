@@ -32,7 +32,6 @@ public class ChessServer {
         System.out.println("象棋服务器启动，端口: " + PORT);
         System.out.println("数据库已初始化");
         
-        // start game timer
         timerExecutor = Executors.newSingleThreadScheduledExecutor();
         timerExecutor.scheduleAtFixedRate(() -> {
             if (!gameEnded) {
@@ -132,7 +131,6 @@ public class ChessServer {
                 boolean loggedIn = false;
                 while ((message = in.readLine()) != null) {
                     if (message.startsWith("LOGIN:")) {
-                        // deal with login message: LOGIN:username
                         var username = message.substring(6);
                         var player = database.getPlayerByName(username);
                         if (player != null) {
@@ -154,7 +152,15 @@ public class ChessServer {
                     } else if (message.startsWith("CHAT:")) {
                         var chatMsg = message.substring(5);
                         broadcastMessage(playerColor, chatMsg);
-                    } else if (message.equals("GET_BOARD")) {
+                    } 
+                    // === 新增：处理语音转发 ===
+                    else if (message.startsWith("VOICE:")) {
+                        // 仅允许红黑双方发送语音
+                        if (playerColor.equals("红") || playerColor.equals("黑")) {
+                            forwardVoice(message);
+                        }
+                    }
+                    else if (message.equals("GET_BOARD")) {
                         sendBoardToClient();
                     }
                 }
@@ -166,6 +172,17 @@ public class ChessServer {
                     socket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+        }
+        
+        // === 新增：定向转发语音 ===
+        private void forwardVoice(String msg) {
+            String targetColor = playerColor.equals("红") ? "黑" : "红";
+            for (ClientHandler client : clients) {
+                if (client.playerColor.equals(targetColor)) {
+                    client.out.println(msg);
+                    break; // 找到对手即发送并退出
                 }
             }
         }
@@ -308,8 +325,6 @@ public class ChessServer {
                 return false;
             }        
 
-
-/*==================================   rules ===================================== start ==================================================*/
         private boolean isValidMove(int fromRow, int fromCol, int toRow, int toCol) {
             if (fromRow < 0 || fromRow >= 10 || fromCol < 0 || fromCol >= 9) return false;
             if (toRow < 0 || toRow >= 10 || toCol < 0 || toCol >= 9) return false;
@@ -338,10 +353,8 @@ public class ChessServer {
         }
         
         private boolean isValidRookMove(int fromRow, int fromCol, int toRow, int toCol) {
-            //car moves in straight lines
             if (fromRow != toRow && fromCol != toCol) return false;
             
-            // check path clear
             if (fromRow == toRow) {
                 var start = Math.min(fromCol, toCol) + 1;
                 var end = Math.max(fromCol, toCol);
@@ -359,7 +372,6 @@ public class ChessServer {
         }
         
         private boolean isValidKnightMove(int fromRow, int fromCol, int toRow, int toCol) {
-            //horse move in L shape
             var rowDiff = Math.abs(toRow - fromRow);
             var colDiff = Math.abs(toCol - fromCol);
             
@@ -367,7 +379,6 @@ public class ChessServer {
                 return false;
             }
             
-            //check if horse leg is blocked
             if (rowDiff == 2) {
                 var blockRow = fromRow + (toRow - fromRow) / 2;
                 if (!board[blockRow][fromCol].equals("  ")) return false;
@@ -379,17 +390,14 @@ public class ChessServer {
         }
         
         private boolean isValidElephantMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
-            //elephant and 相 move two points diagonally
             var rowDiff = Math.abs(toRow - fromRow);
             var colDiff = Math.abs(toCol - fromCol);
             
             if (rowDiff != 2 || colDiff != 2) return false;
             
-            //can't cross the river
             if (isRed && toRow < 5) return false;
             if (!isRed && toRow > 4) return false;
             
-            //check if elephant eye is blocked
             var midRow = (fromRow + toRow) / 2;
             var midCol = (fromCol + toCol) / 2;
             if (!board[midRow][midCol].equals("  ")) return false;
@@ -398,13 +406,11 @@ public class ChessServer {
         }
         
         private boolean isValidAdvisorMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
-            // advisor and 仕 move one point diagonally
             var rowDiff = Math.abs(toRow - fromRow);
             var colDiff = Math.abs(toCol - fromCol);
             
             if (rowDiff != 1 || colDiff != 1) return false;
             
-            // check palace boundaries
             if (isRed) {
                 if (toRow < 7 || toCol < 3 || toCol > 5) return false;
             } else {
@@ -415,23 +421,19 @@ public class ChessServer {
         }
         
         private boolean isValidKingMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
-            // king and 帥 move one point orthogonally
             var rowDiff = Math.abs(toRow - fromRow);
             var colDiff = Math.abs(toCol - fromCol);
             
             if (rowDiff + colDiff != 1) return false;
             
-            //check the scale boundaries
             if (isRed) {
                 if (toRow < 7 || toCol < 3 || toCol > 5) return false;
             } else {
                 if (toRow > 2 || toCol < 3 || toCol > 5) return false;
             }
             
-            // check for flying general
             var targetPiece = board[toRow][toCol];
             if ((targetPiece.equals("帅") && !isRed) || (targetPiece.equals("將") && isRed)) {
-                // check if path is clear
                 if (fromCol == toCol) {
                     var start = Math.min(fromRow, toRow) + 1;
                     var end = Math.max(fromRow, toRow);
@@ -446,12 +448,10 @@ public class ChessServer {
         }
         
         private boolean isValidCannonMove(int fromRow, int fromCol, int toRow, int toCol) {
-            // cannon moves in straight lines
             if (fromRow != toRow && fromCol != toCol) return false;
             
             var pieceCount = 0;
             
-            //compute number of pieces in the path
             if (fromRow == toRow) {
                 var start = Math.min(fromCol, toCol) + 1;
                 var end = Math.max(fromCol, toCol);
@@ -466,7 +466,6 @@ public class ChessServer {
                 }
             }
             
-            //if capturing, must have exactly one piece in between
             if (!board[toRow][toCol].equals("  ")) {
                 return pieceCount == 1;
             } else {
@@ -475,33 +474,26 @@ public class ChessServer {
         }
         
         private boolean isValidPawnMove(int fromRow, int fromCol, int toRow, int toCol, boolean isRed) {
-            // pawn and 兵 move forward, after crossing river can move sideways
             var rowDiff = toRow - fromRow;
             var colDiff = Math.abs(toCol - fromCol);
             
             if (isRed) {
-                //red pawn moves up
                 if (fromRow > 4) {
-                    // not crossed river, can only move forward
                     return rowDiff == -1 && colDiff == 0;
                 } else {
-                    //can move forward or sideways after crossing river
                     return (rowDiff == -1 && colDiff == 0) || 
                            (rowDiff == 0 && colDiff == 1);
                 }
             } else {
-                //black pawn moves down
                 if (fromRow < 5) {
-                    // not crossed river, can only move forward
                     return rowDiff == 1 && colDiff == 0;
                 } else {
-                    //can move forward or sideways after crossing river
                     return (rowDiff == 1 && colDiff == 0) || 
                            (rowDiff == 0 && colDiff == 1);
                 }
             }
         }
-/*==================================   rules ===================================== end ==================================================*/
+
         private void sendBoardToAll() {
             StringBuilder sb = new StringBuilder("BOARD:");
             for (int i = 0; i < 10; i++) {
@@ -528,11 +520,10 @@ public class ChessServer {
         initBoard();
         currentPlayer = "红";
         gameStartTime = System.currentTimeMillis();
-        gameStartTimeExact = LocalDateTime.now(); // record exact start time
+        gameStartTimeExact = LocalDateTime.now(); 
         gameEnded = false;
         System.out.println("新游戏开始，红方先走");
         
-        // broadcast updated board
         StringBuilder sb = new StringBuilder("BOARD:");
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 9; j++) {
@@ -545,7 +536,6 @@ public class ChessServer {
             client.out.println(sb.toString());
         }
         
-        //broadcast new game message
         String chatMessage = "CHAT:系统: 新游戏开始！红方先走。";
         for (ClientHandler client : clients) {
             client.out.println(chatMessage);
